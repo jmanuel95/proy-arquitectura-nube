@@ -1,0 +1,36 @@
+name: Bootstrap S3 Code Bucket
+
+on:
+  workflow_dispatch:
+
+env:
+  PROJECT_NAME: events
+  AWS_REGION: us-west-2
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create S3 code bucket stack
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/s3-code-bucket.yaml \
+            --stack-name ${{ env.PROJECT_NAME }}-lambda-code-bucket \
+            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Show bucket name
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "Bucket: ${PROJECT_NAME}-lambda-code-${ACCOUNT_ID}-${AWS_REGION}" >> $GITHUB_STEP_SUMMARY

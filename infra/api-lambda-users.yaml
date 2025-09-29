@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: HTTP API + Lambda para crear usuarios en DynamoDB (código desde S3)
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: events-app
+  TableName:
+    Type: String
+    Description: Nombre de la tabla DynamoDB (ej:events-EventsApp)
+  CodeS3Bucket:
+    Type: String
+    Description: Bucket S3 donde está el paquete ZIP de la Lambda
+  CodeS3Key:
+    Type: String
+    Description: Key del ZIP de la Lambda (por ej:lambda/users_create.zip)
+  LambdaMemoryMB:
+    Type: Number
+    Default: 512
+  LambdaTimeoutSec:
+    Type: Number
+    Default: 15
+
+Resources:
+  # Rol de ejecución para la Lambda
+  UsersLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-users-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: [lambda.amazonaws.com] }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}
+
+  # Lambda: crea usuarios
+  CreateUserLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-create-user
+      Runtime: python3.13
+      Handler: app.handler
+      Role: !GetAtt UsersLambdaRole.Arn
+      MemorySize: !Ref LambdaMemoryMB
+      Timeout: !Ref LambdaTimeoutSec
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3Key
+      Architectures: [arm64]
+
+  # HTTP API (API Gateway v2)
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub ${ProjectName}-http-api-create-users
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowMethods: ['POST', 'OPTIONS']
+        AllowHeaders: ['content-type', 'authorization']
+
+  # Integración Lambda
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateUserLambda.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  # Ruta POST /users
+  PostUsersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'POST /users'
+      Target: !Sub integrations/${ApiIntegration}
+
+  # Stage
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: v1
+      AutoDeploy: true
+
+  # Permiso para que API Gateway invoque la Lambda
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CreateUserLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/users
+
+Outputs:
+  ApiBaseUrl:
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/v1
+    Description: URL base del API
+  CreateUserEndpoint:
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/v1/users
+    Description: Endpoint POST para crear usuarios
+  LambdaName:
+    Value: !Ref CreateUserLambda
+  LambdaRoleName:
+    Value: !Ref UsersLambdaRole

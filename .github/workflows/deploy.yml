@@ -1,0 +1,92 @@
+name: Deploy IaC + Lambda
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infra/**'
+      - 'lambda/users_create/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PROJECT_NAME: events
+  AWS_REGION: us-west-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-west-2
+
+      - name: Compute CODE_BUCKET and TABLE_NAME
+        id: env
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
+          echo "CODE_BUCKET=${{ env.PROJECT_NAME }}-lambda-code-$ACCOUNT_ID-${{ env.AWS_REGION }}" >> $GITHUB_ENV
+          echo "TABLE_NAME=${{ env.PROJECT_NAME }}-EventsApp" >> $GITHUB_ENV
+
+      - name: Zip Lambda (users_create)
+        run: |
+          mkdir -p dist
+          cd lambda/users_create
+          zip -r ../../dist/users_create.zip app.py
+
+      - name: Upload ZIP to S3 (versioned by SHA)
+        run: |
+          KEY=lambda/users_create-${GITHUB_SHA}.zip
+          aws s3 cp dist/users_create.zip s3://$CODE_BUCKET/$KEY
+          echo "CODE_S3_KEY=$KEY" >> $GITHUB_ENV
+
+      - name: Validate DynamoDB template
+        run: |
+          aws cloudformation validate-template --template-body file://infra/dynamodb-ondemand.yaml
+
+      - name: Deploy DynamoDB (On-Demand)
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/dynamodb-ondemand.yaml \
+            --stack-name "${{ env.PROJECT_NAME }}-dynamodb" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Validate API+Lambda template
+        run: |
+          aws cloudformation validate-template --template-body file://infra/api-lambda-users.yaml
+
+      - name: Deploy API + Lambda
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/api-lambda-users.yaml \
+            --stack-name "${{ env.PROJECT_NAME }}-users-api" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              ProjectName=${{ env.PROJECT_NAME }} \
+              TableName=$TABLE_NAME \
+              CodeS3Bucket=$CODE_BUCKET \
+              CodeS3Key=$CODE_S3_KEY \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Show API endpoint
+        run: |
+          URL=$(aws cloudformation describe-stacks \
+            --stack-name "${{ env.PROJECT_NAME }}-users-api" \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='CreateUserEndpoint'].OutputValue" --output text)
+          echo "CreateUserEndpoint: $URL" >> $GITHUB_STEP_SUMMARY
