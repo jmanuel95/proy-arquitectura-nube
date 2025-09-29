@@ -55,12 +55,12 @@ jobs:
 
       - name: Validate DynamoDB template
         run: |
-          aws cloudformation validate-template --template-body file://infra/dynamodb-ondemand.yaml
+          aws cloudformation validate-template --template-body file://infra/dynamodb.yaml
 
       - name: Deploy DynamoDB (On-Demand)
         run: |
           aws cloudformation deploy \
-            --template-file infra/dynamodb-ondemand.yaml \
+            --template-file infra/dynamodb.yaml \
             --stack-name "${{ env.PROJECT_NAME }}-dynamodb" \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} \
