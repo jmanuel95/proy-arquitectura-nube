@@ -89,7 +89,7 @@ jobs:
           aws cloudformation deploy \
             --template-file infra/api-lambda-events.yaml \
             --stack-name events-api-stack \
-            --capabilities CAPABILITY_NAMED_IAM
+            --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               ProjectName=${PROJECT_NAME} \
               CodeS3Bucket=${CODE_BUCKET} \
