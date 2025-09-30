@@ -1,21 +1,21 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: HTTP API + Lambda para crear usuarios en DynamoDB (código desde S3). La Lambda escribe en la tabla 'UserManagementTable' por defecto.
+Description: "HTTP API + Lambda para crear usuarios en DynamoDB (código desde S3). La Lambda escribe en la tabla 'UserManagementTable' por defecto."
 
 Parameters:
   ProjectName:
     Type: String
     Default: events-app
-    Description: Prefijo para nombrar recursos.
+    Description: "Prefijo para nombrar recursos."
   TableName:
     Type: String
     Default: UserManagementTable
-    Description: Nombre FÍSICO de la tabla DynamoDB donde se crearán usuarios (por defecto: UserManagementTable).
+    Description: "Nombre FÍSICO de la tabla DynamoDB donde se crearán usuarios (por defecto: UserManagementTable)."
   CodeS3Bucket:
     Type: String
-    Description: Bucket S3 donde está el paquete ZIP de la Lambda
+    Description: "Bucket S3 donde está el paquete ZIP de la Lambda."
   CodeS3Key:
     Type: String
-    Description: Key del ZIP de la Lambda (por ej: lambda/users_create.zip)
+    Description: "Key del ZIP de la Lambda (por ej: lambda/users_create.zip)."
   LambdaMemoryMB:
     Type: Number
     Default: 512
@@ -106,17 +106,17 @@ Resources:
       FunctionName: !Ref CreateUserLambda
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      # Permite invocaciones desde cualquier método/ruta de este API y stage
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*/*
 
 Outputs:
   ApiBaseUrl:
     Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/v1
-    Description: URL base del API
+    Description: "URL base del API"
   CreateUserEndpoint:
     Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/v1/users
-    Description: Endpoint POST para crear usuarios
+    Description: "Endpoint POST para crear usuarios"
   LambdaName:
     Value: !Ref CreateUserLambda
   LambdaRoleName:
     Value: !Ref UsersLambdaRole
+
