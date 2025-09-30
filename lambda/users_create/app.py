@@ -12,7 +12,7 @@ def _resp(code, payload):
 
 def handler(event, context):
     try:
-        body = event.get("body") or "" 
+        body = event.get("body") or ""
         if event.get("isBase64Encoded"):
             import base64
             body = base64.b64decode(body).decode("utf-8")
