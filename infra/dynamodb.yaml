@@ -7,11 +7,12 @@ Resources:
   EventManagementTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: EventManagementTable  # Nombre fijo de la tabla
-      BillingMode: PAY_PER_REQUEST  # Modo On-Demand - pago por uso real
-      AttributeDefinitions: # Solo atributos usados en keys o indices
+      TableName: EventManagementTable
+      BillingMode: PAY_PER_REQUEST
+      # La unión exacta de TODAS las claves usadas por la tabla y sus GSIs
+      AttributeDefinitions:
         - AttributeName: EventId
-          AttributeType: S  # String
+          AttributeType: S
         - AttributeName: EventName
           AttributeType: S
         - AttributeName: EventDate
@@ -25,23 +26,23 @@ Resources:
         - AttributeName: UserId
           AttributeType: S
         - AttributeName: Quantity
-          AttributeType: I
-      KeySchema: # Definicion de la clave primaria
+          AttributeType: N
+      KeySchema:
         - AttributeName: EventId
-          KeyType: HASH  # Partition key
-      GlobalSecondaryIndexes: # Indices para consultas alternativas
+          KeyType: HASH
+      GlobalSecondaryIndexes:
         - IndexName: EventNameIndex
           KeySchema:
             - AttributeName: EventName
               KeyType: HASH
-          Projection: # Que atributos incluir en el indice
-            ProjectionType: ALL  # Incluye todos los atributos
+          Projection:
+            ProjectionType: ALL
         - IndexName: EventCountryCityIndex
           KeySchema:
             - AttributeName: EventCountry
-              KeyType: HASH  # Partition key del indice
+              KeyType: HASH
             - AttributeName: EventCity
-              KeyType: RANGE  # Sort key del indice
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
         - IndexName: EventStatusIndex
@@ -56,6 +57,19 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+        # ↓ Nuevos GSIs para tus campos "fundamentales"
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: UserId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: QuantityIndex
+          KeySchema:
+            - AttributeName: Quantity
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       #PointInTimeRecoverySpecification: # Backup continuo
       #  PointInTimeRecoveryEnabled: true
       #DeletionProtection: true  # Protege contra eliminacion accidental
@@ -64,36 +78,39 @@ Resources:
   UserManagementTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: UserManagementTable  # Nombre fijo de la tabla
-      BillingMode: PAY_PER_REQUEST  # Modo On-Demand - pago por uso real
-      AttributeDefinitions: # Solo atributos usados en keys o indices
+      TableName: UserManagementTable
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
         - AttributeName: UserId
-          AttributeType: S  # String
+          AttributeType: S
         - AttributeName: UserNames
           AttributeType: S
         - AttributeName: UserEmail
           AttributeType: S
-        - AttributeName: Role
+        - AttributeName: Role          # ← agregado
           AttributeType: S
-      KeySchema: # Definicion de la clave primaria
+      KeySchema:
         - AttributeName: UserId
-          KeyType: HASH  # Partition key
-      GlobalSecondaryIndexes: # Indices para consultas alternativas
+          KeyType: HASH
+      GlobalSecondaryIndexes:
         - IndexName: UserNamesIndex
           KeySchema:
             - AttributeName: UserNames
               KeyType: HASH
-          Projection: # Que atributos incluir en el indice
-            ProjectionType: ALL  # Incluye todos los atributos
+          Projection:
+            ProjectionType: ALL
         - IndexName: UserEmailIndex
           KeySchema:
             - AttributeName: UserEmail
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      #PointInTimeRecoverySpecification: # Backup continuo
-      #  PointInTimeRecoveryEnabled: true
-      #DeletionProtection: true  # Protege contra eliminacion accidental
+        - IndexName: RoleIndex
+          KeySchema:
+            - AttributeName: Role
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
 
   # DynamoDB Table for Registration
   RegistrationTable:
