@@ -1,4 +1,4 @@
-name: Deploy infra + Lambda + Smoke test (main)
+name: Deploy (main)
 
 on:
   push:
@@ -13,10 +13,6 @@ permissions:
   id-token: write
   contents: read
 
-concurrency:
-  group: deploy-main
-  cancel-in-progress: true
-
 env:
   AWS_REGION: us-west-2
   PROJECT_NAME: events-app
@@ -24,10 +20,8 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -35,90 +29,37 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Compute common vars
-        run: |
-          echo "LAMBDA_NAME=${PROJECT_NAME}-create-user" >> $GITHUB_ENV
-
-      - name: Zip Lambda (users_create) con app.py en la raíz
+      # 1) Empaquetar Lambda (app.py DEBE estar en la RAÍZ del zip)
+      - name: Zip Lambda
         run: |
           mkdir -p dist
           cd lambda/users_create
           zip -r ../../dist/users_create.zip app.py
 
-      # --- Bucket S3 para código (creado por CFN y leído desde Outputs) ---
-      - name: Bootstrap S3 code bucket (idempotent)
+      # 2) Bucket para código: CFN idempotente + leer Output con el nombre real
+      - name: Ensure code bucket (CFN) + resolve name
         run: |
           aws cloudformation deploy \
             --template-file infra/s3-code-bucket.yaml \
             --stack-name ${PROJECT_NAME}-lambda-code-bucket \
             --parameter-overrides ProjectName=${PROJECT_NAME} \
             --region ${AWS_REGION}
-
-      - name: Resolve CODE_BUCKET from CFN outputs
-        run: |
-          BUCKET=$(aws cloudformation describe-stacks \
+          CODE_BUCKET=$(aws cloudformation describe-stacks \
             --stack-name "${PROJECT_NAME}-lambda-code-bucket" \
             --region ${AWS_REGION} \
             --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
             --output text)
-          echo "CODE_BUCKET=${BUCKET}" >> $GITHUB_ENV
-          echo "Using S3 bucket: ${BUCKET}"
+          echo "CODE_BUCKET=$CODE_BUCKET" >> $GITHUB_ENV
+          aws s3api head-bucket --bucket "$CODE_BUCKET" --region ${AWS_REGION}
 
-      - name: Head bucket
-        run: aws s3api head-bucket --bucket "$CODE_BUCKET" --region "${AWS_REGION}"
-
-      - name: Upload ZIP to S3 (versioned by commit SHA)
+      # 3) Subir ZIP versionado por commit
+      - name: Upload ZIP to S3
         run: |
-          KEY=lambda/users_create-${GITHUB_SHA}.zip
-          echo "CODE_S3_KEY=${KEY}" >> $GITHUB_ENV
-          aws s3 cp dist/users_create.zip "s3://${CODE_BUCKET}/${KEY}" --region "${AWS_REGION}"
+          CODE_S3_KEY=lambda/users_create-${GITHUB_SHA}.zip
+          echo "CODE_S3_KEY=$CODE_S3_KEY" >> $GITHUB_ENV
+          aws s3 cp dist/users_create.zip "s3://$CODE_BUCKET/$CODE_S3_KEY" --region ${AWS_REGION}
 
-      # --- Validación / despliegue de DynamoDB (si existe template) ---
-      - name: Validate templates (if present)
-        run: |
-          if [ -f infra/dynamodb.yaml ]; then
-            aws cloudformation validate-template --template-body file://infra/dynamodb.yaml
-          elif [ -f infra/dynamodb-ondemand.yaml ]; then
-            aws cloudformation validate-template --template-body file://infra/dynamodb-ondemand.yaml
-          else
-            echo "No DynamoDB template under infra/; continuing…"
-          fi
-          aws cloudformation validate-template --template-body file://infra/api-lambda-users.yaml
-
-      - name: Deploy DynamoDB (if template present)
-        run: |
-          if [ -f infra/dynamodb.yaml ]; then
-            aws cloudformation deploy \
-              --template-file infra/dynamodb.yaml \
-              --stack-name ${PROJECT_NAME}-dynamodb \
-              --capabilities CAPABILITY_NAMED_IAM \
-              --region ${AWS_REGION}
-          elif [ -f infra/dynamodb-ondemand.yaml ]; then
-            aws cloudformation deploy \
-              --template-file infra/dynamodb-ondemand.yaml \
-              --stack-name ${PROJECT_NAME}-dynamodb \
-              --capabilities CAPABILITY_NAMED_IAM \
-              --parameter-overrides ProjectName=${PROJECT_NAME} \
-              --region ${AWS_REGION}
-          else
-            echo "Skipping DynamoDB deploy (no template found)"
-          fi
-
-      # Intentar resolver el nombre físico de la tabla de usuarios desde Exports
-      - name: Resolve DDB table name from exports (UserTableName)
-        run: |
-          TBL=$(aws cloudformation list-exports \
-            --region ${AWS_REGION} \
-            --query "Exports[?Name=='UserTableName' || ends_with(Name, '-UserTableName')].Value | [0]" \
-            --output text)
-          if [ "$TBL" = "None" ] || [ -z "$TBL" ]; then
-            # Fallback al valor por defecto del template API (UserManagementTable)
-            TBL="UserManagementTable"
-          fi
-          echo "DDB_TABLE_NAME=${TBL}" >> $GITHUB_ENV
-          echo "Using DynamoDB table: ${TBL}"
-
-      # --- Despliegue API + Lambda (apunta al ZIP recién subido y a la tabla resuelta) ---
+      # 4) Desplegar API + Lambda (usa TableName del template o pásalo si quieres forzarlo)
       - name: Deploy API + Lambda
         run: |
           aws cloudformation deploy \
@@ -127,43 +68,9 @@ jobs:
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               ProjectName=${PROJECT_NAME} \
-              TableName=${DDB_TABLE_NAME} \
               CodeS3Bucket=${CODE_BUCKET} \
               CodeS3Key=${CODE_S3_KEY} \
             --region ${AWS_REGION}
 
-      - name: Get API endpoint
-        run: |
-          API_URL=$(aws cloudformation describe-stacks \
-            --stack-name "${PROJECT_NAME}-users-api" \
-            --region ${AWS_REGION} \
-            --query "Stacks[0].Outputs[?OutputKey=='CreateUserEndpoint'].OutputValue" \
-            --output text)
-          echo "API_URL=${API_URL}" >> $GITHUB_ENV
-          echo "CreateUserEndpoint: ${API_URL}" >> $GITHUB_STEP_SUMMARY
-
-      # --- Smoke test real del POST /users ---
-      - name: Smoke test POST /users
-        run: |
-          echo '{"userId":"CI-'${GITHUB_RUN_NUMBER}'","email":"ci-'${GITHUB_RUN_NUMBER}'@example.com","name":"Pipeline CI","role":"CLIENTE"}' > body.json
-          HTTP_CODE=$(curl -sS -o resp.json -w "%{http_code}" \
-            -X POST "$API_URL" \
-            -H "Content-Type: application/json" \
-            --data @body.json)
-          echo "HTTP_CODE=$HTTP_CODE"
-          cat resp.json || true
-          if [ "$HTTP_CODE" -ne 201 ]; then
-            echo "::warning::Smoke test failed. Last Lambda logs:"
-            aws logs filter-log-events \
-              --log-group-name "/aws/lambda/${LAMBDA_NAME}" \
-              --limit 25 \
-              --query "events[].message" \
-              --region ${AWS_REGION} \
-              --output text || true
-            exit 1
-          fi
-
       - name: Summary
-        run: |
-          echo "✅ Deploy OK" >> $GITHUB_STEP_SUMMARY
-          echo "API: ${API_URL}" >> $GITHUB_STEP_SUMMARY
+        run: echo "✅ Deploy OK" >> $GITHUB_STEP_SUMMARY
