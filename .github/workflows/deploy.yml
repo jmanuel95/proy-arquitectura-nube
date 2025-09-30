@@ -74,11 +74,11 @@ jobs:
 
       - name: Deploy DynamoDB tables
         run: |
-          aws cloudformation deploy
-          --stack-name ${{ env.PROJECT_NAME }}-dynamodb
-          --template-file infra/dynamodb.yaml
-          --region ${{ env.AWS_REGION }}
-
+          aws cloudformation deploy \
+            --stack-name "${PROJECT_NAME}-dynamodb" \
+            --template-file infra/dynamodb.yaml \
+            --parameter-overrides ProjectName="${PROJECT_NAME}" \
+            --region "${AWS_REGION}"
 
       - name: Summary
         run: echo "✅ Deploy OK" >> $GITHUB_STEP_SUMMARY
