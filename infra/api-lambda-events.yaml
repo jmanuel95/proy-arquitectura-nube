@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: API Gateway + Lambda para crear eventos con validación de rol de usuario
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: events-app
+    Description: "Prefijo para nombrar recursos."
+  TableName:
+    Type: String
+    Default: UserManagementTable
+    Description: "Nombre FÍSICO de la tabla DynamoDB donde se crearán usuarios (por defecto: UserManagementTable)."
+  CodeS3Bucket:
+    Type: String
+    Description: "Bucket S3 donde está el paquete ZIP de la Lambda."
+  CodeS3Key:
+    Type: String
+    Description: "Key del ZIP de la Lambda (por ej: lambda/add_event.zip)."
+  LambdaMemoryMB:
+    Type: Number
+    Default: 512
+  LambdaTimeoutSec:
+    Type: Number
+    Default: 15
+
+  Resources:
+
+  UsersLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-users-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: [lambda.amazonaws.com] }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/*
+
+  CreateEventLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: create-event-lambda
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3Key
+      Role: !GetAtt UsersLambdaRole.Arn
+      Environment:
+        Variables:
+          EVENTS_TABLE: EventManagementTable
+          USERS_TABLE: UserManagementTable
+
+  ###################################
+  # API Gateway (HTTP API)
+  ###################################
+  EventsHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: events-app-httpapi
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+        AllowHeaders:
+          - "*"
+
+  CreateEventLambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref EventsHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt CreateEventLambdaFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  CreateEventLambdaRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref EventsHttpApi
+      RouteKey: "POST /events"
+      Target: !Sub integrations/${CreateEventLambdaIntegration}
+
+  EventsStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: prod
+      ApiId: !Ref EventsHttpApi
+      AutoDeploy: true
+
+  ###################################
+  # Lambda Invoke Permission
+  ###################################
+  CreateEventLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CreateEventLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${EventsHttpApi}/*/POST/events
+
+Outputs:
+  EventsApiEndpoint:
+    Description: URL del endpoint para crear eventos
+    Value: !Sub https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod/events

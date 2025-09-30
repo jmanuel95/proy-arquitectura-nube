@@ -36,6 +36,12 @@ jobs:
           cd lambda/users_create
           zip -r ../../dist/users_create.zip app.py
 
+      - name: Zip Lambda event
+        run: |
+          mkdir -p dist
+          cd lambda/add_event
+          zip -r ../../dist/add_event.zip app.py
+
       # 2) Bucket para código: CFN idempotente + leer Output con el nombre real
       - name: Ensure code bucket (CFN) + resolve name
         run: |
@@ -59,6 +65,12 @@ jobs:
           echo "CODE_S3_KEY=$CODE_S3_KEY" >> $GITHUB_ENV
           aws s3 cp dist/users_create.zip "s3://$CODE_BUCKET/$CODE_S3_KEY" --region ${AWS_REGION}
 
+      - name: Upload ZIP to S3 event
+        run: |
+          CODE_S3_KEY=lambda/add_event-${GITHUB_SHA}.zip
+          echo "CODE_S3_KEY=$CODE_S3_KEY" >> $GITHUB_ENV
+          aws s3 cp dist/add_event.zip "s3://$CODE_BUCKET/$CODE_S3_KEY" --region ${AWS_REGION}
+
       # 4) Desplegar API + Lambda (usa TableName del template o pásalo si quieres forzarlo)
       - name: Deploy API + Lambda
         run: |
@@ -66,6 +78,18 @@ jobs:
             --template-file infra/api-lambda-users.yaml \
             --stack-name ${PROJECT_NAME}-users-api \
             --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              ProjectName=${PROJECT_NAME} \
+              CodeS3Bucket=${CODE_BUCKET} \
+              CodeS3Key=${CODE_S3_KEY} \
+            --region ${AWS_REGION}
+
+      - name: Deploy Events API + Lambda
+        run: |
+          aws cloudformation deploy \
+            --template-file api-lambda-events.yaml \
+            --stack-name events-api-stack \
+            --capabilities CAPABILITY_NAMED_IAM
             --parameter-overrides \
               ProjectName=${PROJECT_NAME} \
               CodeS3Bucket=${CODE_BUCKET} \

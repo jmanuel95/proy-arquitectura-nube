@@ -87,7 +87,7 @@ Resources:
           AttributeType: S
         - AttributeName: UserEmail
           AttributeType: S
-        - AttributeName: Role          # ← agregado
+        - AttributeName: Role
           AttributeType: S
       KeySchema:
         - AttributeName: UserId
