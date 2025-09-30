@@ -152,4 +152,4 @@ Outputs:
     Description: "Nombre de la tabla DynamoDB de Registration"
     Value: !Ref RegistrationTable
     Export:
-      Name: "RegistrationTableName"
+      Name: RegistrationTableName"
