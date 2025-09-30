@@ -25,6 +25,34 @@ Parameters:
     Description: Nombre de la Stage del API
 
 Resources:
+
+  UsersLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-users-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: [lambda.amazonaws.com] }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/*
+
+
   ###################################
   # Lambda (usa rol existente + código en S3)
   ###################################
@@ -34,7 +62,7 @@ Resources:
       FunctionName: !Sub '${ProjectName}-create-event-lambda'
       Handler: app.lambda_handler
       Runtime: python3.12
-      Role: !Ref LambdaRoleArn
+      Role: !GetAtt UsersLambdaRole.Arn
       Code:
         S3Bucket: !Ref CodeS3Bucket
         S3Key: !Ref CodeS3Key

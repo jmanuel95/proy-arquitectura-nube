@@ -72,6 +72,10 @@ jobs:
           aws s3 cp dist/add_event.zip "s3://$CODE_BUCKET/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
 
       # 4) Desplegar API + Lambda (usa TableName del template o pásalo si quieres forzarlo)
+      - name: Validate Events template
+        run: |
+          aws cloudformation validate-template --template-body file://infra/api-lambda-users.yaml
+
       - name: Deploy API + Lambda
         run: |
           aws cloudformation deploy \
