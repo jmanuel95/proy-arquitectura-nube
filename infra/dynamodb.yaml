@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: >
-  DynamoDB - Tablas de clientes, registro de ventes y eventos
+Description: DynamoDB - Tablas de clientes, registro de ventes y eventos
 
 
 
