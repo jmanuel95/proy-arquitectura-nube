@@ -140,16 +140,16 @@ Outputs:
     Description: "Nombre de la tabla DynamoDB de Event Management"
     Value: !Ref EventManagementTable
     Export:
-      Name: EventTableName"
+      Name: EventTableName
 
   UserManagementTableName:
     Description: "Nombre de la tabla DynamoDB de User Management"
     Value: !Ref UserManagementTable
     Export:
-      Name: UserTableName"
+      Name: UserTableName
 
   RegistrationTableName:
     Description: "Nombre de la tabla DynamoDB de Registration"
     Value: !Ref RegistrationTable
     Export:
-      Name: RegistrationTableName"
+      Name: RegistrationTableName
