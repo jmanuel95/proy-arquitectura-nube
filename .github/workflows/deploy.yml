@@ -84,6 +84,10 @@ jobs:
               CodeS3Key=${CODE_S3_KEY} \
             --region ${AWS_REGION}
 
+      - name: Validate Events template
+        run: |
+          aws cloudformation validate-template --template-body file://infra/api-lambda-events.yaml
+
       - name: Deploy Events API + Lambda
         run: |
           aws cloudformation deploy \
@@ -94,7 +98,11 @@ jobs:
               ProjectName=${PROJECT_NAME} \
               CodeS3Bucket=${CODE_BUCKET} \
               CodeS3Key=${CODE_S3_KEY_EVENT} \
-            --region ${AWS_REGION}
+              LambdaRoleArn=${LAMBDA_ROLE_ARN} \
+              ApiName=events-app-httpapi \
+              StageName=prod \
+            --region ${AWS_REGION} \
+            --no-fail-on-empty-changeset
 
       - name: Deploy DynamoDB tables
         run: |
