@@ -22,6 +22,10 @@ Resources:
           AttributeType: S
         - AttributeName: EventCity
           AttributeType: S
+        - AttributeName: UserId
+          AttributeType: S
+        - AttributeName: Quantity
+          AttributeType: I
       KeySchema: # Definicion de la clave primaria
         - AttributeName: EventId
           KeyType: HASH  # Partition key
@@ -68,6 +72,8 @@ Resources:
         - AttributeName: UserNames
           AttributeType: S
         - AttributeName: UserEmail
+          AttributeType: S
+        - AttributeName: Role
           AttributeType: S
       KeySchema: # Definicion de la clave primaria
         - AttributeName: UserId
