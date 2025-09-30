@@ -1,102 +1,156 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  DynamoDB - Tabla única para EventsApp (modo On-Demand).
-  Incluye GSIs para consultas por estado, organizador y usuario.
+  DynamoDB - Tablas de clientes, registro de ventes y eventos
 
-Parameters:
-  ProjectName:
-    Type: String
-    Default: events-app
-    Description: Prefijo para nombrar la tabla.
+
 
 Resources:
-
-  EventsTable:
-    Type: AWS::DynamoDB::Table
+  EventManagementTable:
+    Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: !Sub ${ProjectName}-EventsApp
-      BillingMode: PAY_PER_REQUEST   # Escalado automático
-      SSESpecification:
-        SSEEnabled: true             # Cifrado administrado por AWS
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      TimeToLiveSpecification:
-        AttributeName: expiresAt     # opcional (epoch segundos)
-        Enabled: true
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-
-      AttributeDefinitions:
-        - AttributeName: PK
+      TableName: EventManagementTable  # Nombre fijo de la tabla
+      BillingMode: PAY_PER_REQUEST  # Modo On-Demand - pago por uso real
+      AttributeDefinitions: # Solo atributos usados en keys o indices
+        - AttributeName: EventId
+          AttributeType: S  # String
+        - AttributeName: EventName
           AttributeType: S
-        - AttributeName: SK
+        - AttributeName: EventDate
           AttributeType: S
-
-        # GSI1: Eventos por estado y fecha
-        - AttributeName: GSI1PK
+        - AttributeName: EventStatus
           AttributeType: S
-        - AttributeName: GSI1SK
+        - AttributeName: EventCountry
           AttributeType: S
-
-        # GSI2: Eventos por organizador y fecha
-        - AttributeName: GSI2PK
+        - AttributeName: EventCity
           AttributeType: S
-        - AttributeName: GSI2SK
-          AttributeType: S
-
-        # GSI3: Inscripciones por usuario
-        - AttributeName: GSI3PK
-          AttributeType: S
-        - AttributeName: GSI3SK
-          AttributeType: S
-
-      KeySchema:
-        - AttributeName: PK
-          KeyType: HASH
-        - AttributeName: SK
-          KeyType: RANGE
-
-      GlobalSecondaryIndexes:
-        - IndexName: GSI1
+      KeySchema: # Definicion de la clave primaria
+        - AttributeName: EventId
+          KeyType: HASH  # Partition key
+      GlobalSecondaryIndexes: # Indices para consultas alternativas
+        - IndexName: EventNameIndex
           KeySchema:
-            - AttributeName: GSI1PK
+            - AttributeName: EventName
               KeyType: HASH
-            - AttributeName: GSI1SK
-              KeyType: RANGE
+          Projection: # Que atributos incluir en el indice
+            ProjectionType: ALL  # Incluye todos los atributos
+        - IndexName: EventCountryCityIndex
+          KeySchema:
+            - AttributeName: EventCountry
+              KeyType: HASH  # Partition key del indice
+            - AttributeName: EventCity
+              KeyType: RANGE  # Sort key del indice
           Projection:
             ProjectionType: ALL
-
-        - IndexName: GSI2
+        - IndexName: EventStatusIndex
           KeySchema:
-            - AttributeName: GSI2PK
+            - AttributeName: EventStatus
               KeyType: HASH
-            - AttributeName: GSI2SK
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
-
-        - IndexName: GSI3
+        - IndexName: EventDateIndex
           KeySchema:
-            - AttributeName: GSI3PK
+            - AttributeName: EventDate
               KeyType: HASH
-            - AttributeName: GSI3SK
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
+      #PointInTimeRecoverySpecification: # Backup continuo
+      #  PointInTimeRecoveryEnabled: true
+      #DeletionProtection: true  # Protege contra eliminacion accidental
 
-      Tags:
-        - Key: project
-          Value: !Ref ProjectName
-        - Key: stack
-          Value: dynamodb
+  # DynamoDB Table for User Management
+  UserManagementTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: UserManagementTable  # Nombre fijo de la tabla
+      BillingMode: PAY_PER_REQUEST  # Modo On-Demand - pago por uso real
+      AttributeDefinitions: # Solo atributos usados en keys o indices
+        - AttributeName: UserId
+          AttributeType: S  # String
+        - AttributeName: UserNames
+          AttributeType: S
+        - AttributeName: UserEmail
+          AttributeType: S
+      KeySchema: # Definicion de la clave primaria
+        - AttributeName: UserId
+          KeyType: HASH  # Partition key
+      GlobalSecondaryIndexes: # Indices para consultas alternativas
+        - IndexName: UserNamesIndex
+          KeySchema:
+            - AttributeName: UserNames
+              KeyType: HASH
+          Projection: # Que atributos incluir en el indice
+            ProjectionType: ALL  # Incluye todos los atributos
+        - IndexName: UserEmailIndex
+          KeySchema:
+            - AttributeName: UserEmail
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      #PointInTimeRecoverySpecification: # Backup continuo
+      #  PointInTimeRecoveryEnabled: true
+      #DeletionProtection: true  # Protege contra eliminacion accidental
+
+  # DynamoDB Table for Registration
+  RegistrationTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: RegistrationTable  # Nombre fijo de la tabla
+      BillingMode: PAY_PER_REQUEST  # Modo On-Demand - pago por uso real
+      AttributeDefinitions: # Solo atributos usados en keys o indices
+        - AttributeName: RegistrationId
+          AttributeType: S  # String
+        - AttributeName: RegistrationDate
+          AttributeType: S
+        - AttributeName: RegistrationEventId
+          AttributeType: S
+        - AttributeName: RegistrationUserId
+          AttributeType: S
+      KeySchema: # Definicion de la clave primaria
+        - AttributeName: RegistrationId
+          KeyType: HASH  # Partition key
+      GlobalSecondaryIndexes: # Indices para consultas alternativas
+        - IndexName: RegistrationDateIndex
+          KeySchema:
+            - AttributeName: RegistrationDate
+              KeyType: HASH
+          Projection: # Que atributos incluir en el indice
+            ProjectionType: ALL  # Incluye todos los atributos
+        - IndexName: RegistrationEventIdIndex
+          KeySchema:
+            - AttributeName: RegistrationEventId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: RegistrationUserIdIndex
+          KeySchema:
+            - AttributeName: RegistrationUserId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      #PointInTimeRecoverySpecification: # Backup continuo
+      #  PointInTimeRecoveryEnabled: true
+      #DeletionProtection: true  # Protege contra eliminacion accidental
+
+  #######################################################################################################################################
+  # A continuacion los outputs que se generan despues de crear la infraestructura
+  #######################################################################################################################################
+
 
 Outputs:
-  TableName:
-    Value: !Ref EventsTable
-    Description: Nombre de la tabla DynamoDB
-  TableArn:
-    Value: !GetAtt EventsTable.Arn
-    Description: ARN de la tabla
-  TableStreamArn:
-    Value: !GetAtt EventsTable.StreamArn
-    Description: ARN del stream (para Lambda triggers si los usas)
+  EventManagementTableName:
+    Description: "Nombre de la tabla DynamoDB de Event Management"
+    Value: !Ref EventManagementTable
+    Export:
+      Name: EventTableName"
+
+  UserManagementTableName:
+    Description: "Nombre de la tabla DynamoDB de User Management"
+    Value: !Ref UserManagementTable
+    Export:
+      Name: UserTableName"
+
+  RegistrationTableName:
+    Description: "Nombre de la tabla DynamoDB de Registration"
+    Value: !Ref RegistrationTable
+    Export:
+      Name: "RegistrationTableName"
