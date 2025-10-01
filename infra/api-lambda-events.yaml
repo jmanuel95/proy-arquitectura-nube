@@ -29,7 +29,7 @@ Resources:
   UsersLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${ProjectName}-users-lambda-role-events
+      RoleName: !Sub ${ProjectName}-users-lambda-role-events 
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
