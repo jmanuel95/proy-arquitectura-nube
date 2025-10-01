@@ -110,7 +110,7 @@ jobs:
             --parameter-overrides ProjectName="${PROJECT_NAME}" \
             --region "${AWS_REGION}"
           
-      - name: Deploy DynamoDB tables    
+      - name: Deploy API  
           aws cloudformation deploy \
             --template-file infra/restapi.yaml \
             --stack-name ${PROJECT_NAME}-restapi \
