@@ -1,6 +1,9 @@
 Parameters:
   ProjectName:
     Type: String
+  DeploymentVersion:
+    Type: String
+    Default: initial
 
 Resources:
 
@@ -20,7 +23,7 @@ Resources:
   ApiGatewayRestApi:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:
-      Name: 'EventUserManagementAPI' # Nombre de la API
+      Name: 'api-eventos' # Nombre de la API
       Description: 'API Gateway para CRUD de Event Management y User Management Lambdas'
   
   ApiGatewayLogGroup:
@@ -132,6 +135,7 @@ Resources:
         Uri: !Sub
           - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
           - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-UserFunctionArn" } } }
+
   ApiGatewayMethodUserPut:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -209,3 +213,33 @@ Resources:
 #        Type: 'AWS_PROXY' # Integracion proxy con Lambda
 #        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
 #
+
+
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      Description: !Sub "Version ${DeploymentVersion}"
+    DependsOn:
+      - ApiGatewayMethodEventPost
+      - ApiGatewayMethodEventGet
+      - ApiGatewayMethodEventPut
+      - ApiGatewayMethodEventDelete
+      - ApiGatewayMethodUserPost
+      - ApiGatewayMethodUserGet
+      - ApiGatewayMethodUserPut
+      - ApiGatewayMethodUserDelete
+
+  ApiGatewayStageProd:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: prod
+      DeploymentId: !Ref ApiGatewayDeployment
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          MetricsEnabled: true
+          LoggingLevel: INFO
+          DataTraceEnabled: false

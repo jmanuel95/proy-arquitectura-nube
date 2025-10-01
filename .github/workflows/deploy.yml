@@ -107,7 +107,9 @@ jobs:
             --template-file infra/restapi.yaml \
             --stack-name ${PROJECT_NAME}-restapi \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides ProjectName=${PROJECT_NAME} \
+            --parameter-overrides \
+              ProjectName=${PROJECT_NAME} \
+              DeploymentVersion=1.0.0 \
             --region ${AWS_REGION}
 
       - name: Summary
