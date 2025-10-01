@@ -214,14 +214,9 @@ Resources:
 #        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
 #
 
-
-
   ApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref ApiGatewayRestApi
-      Description: !Sub "Version ${DeploymentVersion}"
-    DependsOn:
+    Type: 'AWS::ApiGateway::Deployment'
+    DependsOn: # Asegura que todos los metodos esten creados antes del despliegue
       - ApiGatewayMethodEventPost
       - ApiGatewayMethodEventGet
       - ApiGatewayMethodEventPut
@@ -230,3 +225,6 @@ Resources:
       - ApiGatewayMethodUserGet
       - ApiGatewayMethodUserPut
       - ApiGatewayMethodUserDelete
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: 'prod'
