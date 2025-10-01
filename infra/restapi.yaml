@@ -184,7 +184,7 @@ Resources:
         IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
-
+ 
   ApiGatewayMethodRegistrationPost:
     Type: 'AWS::ApiGateway::Method'
     Properties:
