@@ -1,16 +1,199 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Parameters:
-  ProjectName:
-    Type: String
-    Default: events-app
+  Metadata:
+  Author: "Alberto Chanci"
+  Version: "1.0"
+  Purpose: |
+    Template educativo para enseñar CloudFormation y desplegar la infraestructura definida en el laboratio: Administracion de eventos    
+    - Incluye ApiGateway, DynamoDB y Lambda Functions
+    - Esta diseñado para ambientes de desarrollo y aprendizaje.
+    - Optimizado para la capa gratuita de AWS.
+    - Cada recurso esta documentado y configurado con practicas basicas de seguridad.
+    - Los estudiantes pueden modificar parametros para experimentar.
+    - Para conocer la descripcion, requisitos y pasos para desplegar el laboratorio lee el documento AdministaracionDeEventos.docx
+  LastUpdated: "2025"
+
 Resources:
-  SharedRestApi:
-    Type: AWS::ApiGateway::RestApi
+
+  ApiGatewayCloudWatchLogsRole:
+    Type: 'AWS::IAM::Role'
     Properties:
-      Name: !Sub '${ProjectName}-restapi'
-      EndpointConfiguration: { Types: [REGIONAL] }
-Outputs:
-  RestApiId:
-    Value: !Ref SharedRestApi
-  RootResourceId:
-    Value: !GetAtt SharedRestApi.RootResourceId
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'apigateway.amazonaws.com' # Permite que API Gateway asuma este rol
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns: # Politica administrada para logs de CloudWatch
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+  
+  ApiGatewayRestApi:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'EventUserManagementAPI' # Nombre de la API
+      Description: 'API Gateway para CRUD de Event Management y User Management Lambdas'
+  
+  ApiGatewayLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Sub "/aws/api-gateway/${ApiGatewayRestApi}"  # Referencia dinamica a la API
+      RetentionInDays: 14  # Retencion de logs en dias
+
+  ApiGatewayResourceEvent:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId  # Recurso padre (raiz)
+      PathPart: 'event' # Ruta del endpoint
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayMethodEventPost:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'POST'
+      ResourceId: !Ref ApiGatewayResourceEvent
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodEventGet:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'GET'
+      ResourceId: !Ref ApiGatewayResourceEvent
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodEventPut:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'PUT'
+      ResourceId: !Ref ApiGatewayResourceEvent
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodEventDelete:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'DELETE'
+      ResourceId: !Ref ApiGatewayResourceEvent
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayResourceUser:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId  # Recurso padre (raiz)
+      PathPart: 'user' # Ruta del endpoint
+      RestApiId: !Ref ApiGatewayRestApi
+
+  # CRUD para UserManagementLambda (POST, GET, PUT, DELETE)
+  ApiGatewayMethodUserPost:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'POST'
+      ResourceId: !Ref ApiGatewayResourceUser
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodUserGet:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'GET'
+      ResourceId: !Ref ApiGatewayResourceUser
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodUserPut:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'PUT'
+      ResourceId: !Ref ApiGatewayResourceUser
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodUserDelete:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'DELETE'
+      ResourceId: !Ref ApiGatewayResourceUser
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+
+  #######################################################################################################################################
+  # Se crea el recurso registration y los metodos GET, POST y Delete 
+  #######################################################################################################################################
+
+  # Recurso para Registration Management
+  ApiGatewayResourceRegistration:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId  # Recurso padre (raiz)
+      PathPart: 'registration' # Ruta del endpoint
+      RestApiId: !Ref ApiGatewayRestApi
+
+  # CRUD para RegistrationManagementLambda (GET, POST, DELETE)
+  ApiGatewayMethodRegistrationGet:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'GET'
+      ResourceId: !Ref ApiGatewayResourceRegistration
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodRegistrationPost:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'POST'
+      ResourceId: !Ref ApiGatewayResourceRegistration
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
+
+  ApiGatewayMethodRegistrationDelete:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'DELETE'
+      ResourceId: !Ref ApiGatewayResourceRegistration
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'

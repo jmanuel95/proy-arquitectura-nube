@@ -1,0 +1,136 @@
+Description: |
+  Plantilla para desplegar los siguientes servicios AWS: Lambda
+  Esta plantilla despliega varias funciones Lambda, tablas DynamoDB y un API Gateway con operaciones CRUD para la gestion de eventos y usuarios.
+  Este template esta diseñado para ambientes de desarrollo y aprendizaje, optimizado para la capa gratuita de AWS.
+
+
+Metadata:
+  Author: "Juan Manuel"
+  Version: "1.0"
+  LastUpdated: "2025"
+
+Resources:
+  CreateEventLambdaFunctionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'lambda.amazonaws.com' # Permite que Lambda asuma este rol
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'EventLambdaExecutionPolicy' # Nombre unico para la politica de EventManagement
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/EventManagementLambda*"  # Permisos especificos de logs para esta funcion
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource: !GetAtt EventManagementTable.Arn # Referencia dinamica a la tabla
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan' # Operaciones de consulta en indices secundarios
+                Resource: !Sub "${EventManagementTable.Arn}/*" # Acceso a indices secundarios
+
+
+  CreateEventLambdaFunctionLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: "/aws/lambda/EventManagementLambda"  # Nombre especifico del grupo de logs
+      RetentionInDays: 30  # Retener logs por 30 dias
+
+  CreateEventLambdaFunction: 
+    Type: 'AWS::Lambda::Function'
+    DependsOn: CreateEventLambdaFunctionLogGroup  # Asegura que el log group existe antes que la Lambda
+    Properties:
+      FunctionName: 'EventManagementLambda' # Nombre fijo de la funcion
+      Handler: 'events_management_lambda.lambda_handler'
+      Runtime: python3.12  # Version actualizada de Python
+      Code:
+        S3Bucket: !Ref CodeS3Bucket  # Bucket con nombre unico por cuenta/region
+        S3Key: !Ref CodeS3Key # Archivo ZIP con el codigo fuente
+      MemorySize: 128  # Memoria asignada en MB
+      Timeout: 20  # Timeout en segundos
+      Role: !GetAtt CreateEventLambdaFunctionRole.Arn  # Referencia al rol IAM creado anteriormente
+      Environment: # Variables de entorno para configuracion dinamica
+        Variables:
+          TABLE_NAME: !Ref EventManagementTable
+          REGION: !Ref AWS::Region
+          LOG_LEVEL: INFO  # Nivel de logging configurable
+
+
+  CreateUserLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'lambda.amazonaws.com' # Permite que Lambda asuma este rol
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'UserLambdaExecutionPolicy' # Nombre unico para la politica de UserManagement
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/UserManagementFunction*"  # Permisos especificos de logs para esta funcion
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource: !GetAtt UserManagementTable.Arn  # Referencia dinamica a la tabla
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan' # Agregado para consistencia con otros roles
+                Resource: !Sub "${UserManagementTable.Arn}/*"  # Acceso a indices secundarios
+
+  CreateUserLambdaLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: "/aws/lambda/UserManagementLambda"  # Nombre especifico del grupo de logs
+      RetentionInDays: 30  # Retener logs por 30 dias
+
+  # Lambda para User Management
+  CreateUserLambda: 
+    Type: 'AWS::Lambda::Function'
+    DependsOn: UserManagementLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
+    Properties:
+      FunctionName: 'UserManagementLambda' # Nombre fijo de la funcion
+      Handler: 'users_management_lambda.lambda_handler'
+      Runtime: python3.12  # Version actualizada de Python
+      Code:
+        S3Bucket: !Ref CodeS3Bucket  # Bucket con nombre unico por cuenta/region
+        S3Key: !Ref CodeS3Key # Archivo ZIP con el codigo fuente
+      MemorySize: 128  # Memoria asignada en MB
+      Timeout: 20  # Timeout en segundos
+      Role: !GetAtt UserManagementLambdaRole.Arn  # Referencia al rol IAM
+      Environment: # Variables de entorno para configuracion dinamica
+        Variables:
+          TABLE_NAME: !Ref UserManagementTable
+          REGION: !Ref AWS::Region
+          LOG_LEVEL: INFO  # Nivel de logging configurable
