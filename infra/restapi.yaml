@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ProjectName:
+    Type: String
+    Default: events-app
+Resources:
+  SharedRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${ProjectName}-restapi'
+      EndpointConfiguration: { Types: [REGIONAL] }
+Outputs:
+  RestApiId:
+    Value: !Ref SharedRestApi
+  RootResourceId:
+    Value: !GetAtt SharedRestApi.RootResourceId

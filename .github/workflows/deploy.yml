@@ -110,6 +110,61 @@ jobs:
             --template-file infra/dynamodb.yaml \
             --parameter-overrides ProjectName="${PROJECT_NAME}" \
             --region "${AWS_REGION}"
-
+          
+      - name: Deploy DynamoDB tables    
+          aws cloudformation deploy \
+            --template-file infra/restapi.yaml \
+            --stack-name ${PROJECT_NAME}-restapi \
+            --parameter-overrides ProjectName=${PROJECT_NAME} \
+            --region ${AWS_REGION}
+          
+          # 2) Obtener IDs del API (Outputs del stack)
+      - name: Obtener IDs del API
+          REST_API_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${PROJECT_NAME}-restapi \
+            --query "Stacks[0].Outputs[?OutputKey=='RestApiId'].OutputValue" \
+            --output text --region ${AWS_REGION})
+          
+          ROOT_ID=$(aws cloudformation describe-stacks \
+            --stack-name ${PROJECT_NAME}-restapi \
+            --query "Stacks[0].Outputs[?OutputKey=='RootResourceId'].OutputValue" \
+            --output text --region ${AWS_REGION})
+          
+          # 3) Desplegar USERS (pasa RestApiId y RootResourceId)
+      - name: Desplegar USERS
+          aws cloudformation deploy \
+            --template-file infra/api-lambda-users.yaml \
+            --stack-name ${PROJECT_NAME}-users-api \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              ProjectName=${PROJECT_NAME} \
+              CodeS3Bucket=${CODE_BUCKET} \
+              CodeS3Key=${CODE_S3_KEY} \
+              LambdaRoleArn=${LAMBDA_ROLE_ARN} \
+              RestApiId=${REST_API_ID} \
+              RootResourceId=${ROOT_ID} \
+            --region ${AWS_REGION}
+          
+          # 4) Desplegar EVENTS (pasa RestApiId y RootResourceId)
+      - name: Desplegar EVENTS
+          aws cloudformation deploy \
+            --template-file infra/api-lambda-events.yaml \
+            --stack-name ${PROJECT_NAME}-events-api \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              ProjectName=${PROJECT_NAME} \
+              CodeS3Bucket=${CODE_BUCKET} \
+              CodeS3Key=${CODE_S3_KEY_EVENT} \
+              LambdaRoleArn=${LAMBDA_ROLE_ARN} \
+              RestApiId=${REST_API_ID} \
+              RootResourceId=${ROOT_ID} \
+            --region ${AWS_REGION}
+          
+          # 5) Publicar la stage 'prod' (crea o actualiza el deployment)
+      - name: Publicar la stage 'prod'
+          aws apigateway create-deployment \
+            --rest-api-id ${REST_API_ID} \
+            --stage-name prod \
+            --region ${AWS_REGION}
       - name: Summary
         run: echo "✅ Deploy OK" >> $GITHUB_STEP_SUMMARY
