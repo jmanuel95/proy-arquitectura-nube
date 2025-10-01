@@ -98,7 +98,7 @@ jobs:
               ProjectName=${PROJECT_NAME} \
               CodeS3Bucket=${CODE_BUCKET} \
               CodeS3Key=${CODE_S3_KEY} \
-              CodeS3KeyEvent=${CODE_S3_KEY_EVENT}
+              CodeS3KeyEvent=${CODE_S3_KEY_EVENT} \
             --region ${AWS_REGION}
 
       - name: Deploy API
