@@ -14,6 +14,8 @@ Parameters:
     Type: String
   CodeS3Key:
     Type: String
+  CodeS3KeyEvent:
+    Type: String
 
 Resources:
   CreateEventLambdaFunctionRole:
@@ -45,12 +47,17 @@ Resources:
                   - 'dynamodb:GetItem'
                   - 'dynamodb:Query'
                   - 'dynamodb:Scan'
-                Resource: !GetAtt EventManagementTable.Arn # Referencia dinamica a la tabla
+                Resource:
+                  - !ImportValue "EventTableArn"
+                 #!GetAtt EventManagementTable.Arn # Referencia dinamica a la tabla
               - Effect: 'Allow'
                 Action:
                   - 'dynamodb:Query'
                   - 'dynamodb:Scan' # Operaciones de consulta en indices secundarios
-                Resource: !Sub "${EventManagementTable.Arn}/*" # Acceso a indices secundarios
+                Resource: !Sub 
+                  - "${TableArn}/index/*"
+                  - { TableArn: { "Fn::ImportValue": "EventTableArn" } }
+                #"${EventManagementTable.Arn}/*" # Acceso a indices secundarios
 
 
   CreateEventLambdaFunctionLogGroup:
@@ -68,13 +75,13 @@ Resources:
       Runtime: python3.12  # Version actualizada de Python
       Code:
         S3Bucket: !Ref CodeS3Bucket  # Bucket con nombre unico por cuenta/region
-        S3Key: !Ref CodeS3Key # Archivo ZIP con el codigo fuente
+        S3Key: !Ref CodeS3KeyEvent # Archivo ZIP con el codigo fuente
       MemorySize: 128  # Memoria asignada en MB
       Timeout: 20  # Timeout en segundos
       Role: !GetAtt CreateEventLambdaFunctionRole.Arn  # Referencia al rol IAM creado anteriormente
       Environment: # Variables de entorno para configuracion dinamica
         Variables:
-          TABLE_NAME: !Ref EventManagementTable
+          TABLE_NAME: !ImportValue EventTableName
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
 
@@ -108,12 +115,14 @@ Resources:
                   - 'dynamodb:GetItem'
                   - 'dynamodb:Query'
                   - 'dynamodb:Scan'
-                Resource: !GetAtt UserManagementTable.Arn  # Referencia dinamica a la tabla
+                Resource: !ImportValue UserTableArn  # Referencia dinamica a la tabla
               - Effect: 'Allow'
                 Action:
                   - 'dynamodb:Query'
                   - 'dynamodb:Scan' # Agregado para consistencia con otros roles
-                Resource: !Sub "${UserManagementTable.Arn}/*"  # Acceso a indices secundarios
+                Resource: !Sub
+                  - "${TableArn}/index/*"
+                  - { TableArn: { "Fn::ImportValue": "UserTableArn" } }  # Acceso a indices secundarios
 
   CreateUserLambdaLogGroup:
     Type: 'AWS::Logs::LogGroup'
@@ -124,7 +133,7 @@ Resources:
   # Lambda para User Management
   CreateUserLambda: 
     Type: 'AWS::Lambda::Function'
-    DependsOn: UserManagementLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
+    DependsOn: CreateUserLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
     Properties:
       FunctionName: 'UserManagementLambda' # Nombre fijo de la funcion
       Handler: 'users_management_lambda.lambda_handler'
@@ -137,6 +146,6 @@ Resources:
       Role: !GetAtt UserManagementLambdaRole.Arn  # Referencia al rol IAM
       Environment: # Variables de entorno para configuracion dinamica
         Variables:
-          TABLE_NAME: !Ref UserManagementTable
+          TABLE_NAME: !ImportValue UserTableName
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
