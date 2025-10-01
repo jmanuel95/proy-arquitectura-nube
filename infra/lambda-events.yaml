@@ -143,7 +143,7 @@ Resources:
         S3Key: !Ref CodeS3Key # Archivo ZIP con el codigo fuente
       MemorySize: 128  # Memoria asignada en MB
       Timeout: 20  # Timeout en segundos
-      Role: !GetAtt UserManagementLambdaRole.Arn  # Referencia al rol IAM
+      Role: !GetAtt CreateUserLambdaLogGroup.Arn  # Referencia al rol IAM
       Environment: # Variables de entorno para configuracion dinamica
         Variables:
           TABLE_NAME: !ImportValue UserTableName
