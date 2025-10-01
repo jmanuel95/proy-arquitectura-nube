@@ -113,7 +113,7 @@ Resources:
             ProjectionType: ALL
 
   # DynamoDB Table for Registration
-  RegistrationTableName:
+  RegistrationTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
       TableName: RegistrationTable  # Nombre fijo de la tabla
@@ -189,7 +189,7 @@ Outputs:
     Export:
       Name: !Sub "UserTableArn"
 
-  RegistrationTableName:
+  RegistrationTableArn:
     Description: ARN de la tabla de registros
     Value: !GetAtt RegistrationTable.Arn
     Export:
