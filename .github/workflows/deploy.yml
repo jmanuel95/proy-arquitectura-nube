@@ -53,13 +53,13 @@ jobs:
 
       - name: Upload ZIP to S3
         run: |
-          CODE_S3_KEY=lambda/users_create-${GITHUB_SHA}.zip
+          CODE_S3_KEY=users_create-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY=$CODE_S3_KEY" >> $GITHUB_ENV
           aws s3 cp dist/users_create.zip "s3://events-app-lambda-code-jm-884234865118-us-west-2/lambda/$CODE_S3_KEY" --region ${AWS_REGION}
 
       - name: Upload ZIP to S3 event
         run: |
-          CODE_S3_KEY_EVENT=lambda/add_event-${GITHUB_SHA}.zip
+          CODE_S3_KEY_EVENT=add_event-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY_EVENT=$CODE_S3_KEY_EVENT" >> $GITHUB_ENV
           aws s3 cp dist/users_create.zip "s3://events-app-lambda-code-jm-884234865118-us-west-2/lambda/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
 
