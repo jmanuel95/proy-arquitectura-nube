@@ -1,16 +1,3 @@
-  Metadata:
-  Author: "Alberto Chanci"
-  Version: "1.0"
-  Purpose: |
-    Template educativo para enseñar CloudFormation y desplegar la infraestructura definida en el laboratio: Administracion de eventos    
-    - Incluye ApiGateway, DynamoDB y Lambda Functions
-    - Esta diseñado para ambientes de desarrollo y aprendizaje.
-    - Optimizado para la capa gratuita de AWS.
-    - Cada recurso esta documentado y configurado con practicas basicas de seguridad.
-    - Los estudiantes pueden modificar parametros para experimentar.
-    - Para conocer la descripcion, requisitos y pasos para desplegar el laboratorio lee el documento AdministaracionDeEventos.docx
-  LastUpdated: "2025"
-
 Resources:
 
   ApiGatewayCloudWatchLogsRole:
