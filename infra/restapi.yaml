@@ -1,3 +1,7 @@
+Parameters:
+  ProjectName:
+    Type: String
+
 Resources:
 
   ApiGatewayCloudWatchLogsRole:
@@ -42,8 +46,11 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
-
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-EventFunctionArn" } } }
+  
   ApiGatewayMethodEventGet:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -54,7 +61,10 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-EventFunctionArn" } } }
 
   ApiGatewayMethodEventPut:
     Type: 'AWS::ApiGateway::Method'
@@ -66,8 +76,10 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
-
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-EventFunctionArn" } } }
   ApiGatewayMethodEventDelete:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -78,7 +90,10 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EventManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-EventFunctionArn" } } }
 
   ApiGatewayResourceUser:
     Type: 'AWS::ApiGateway::Resource'
@@ -98,8 +113,11 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
-
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-UserFunctionArn" } } }
+  
   ApiGatewayMethodUserGet:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -110,8 +128,10 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
-
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-UserFunctionArn" } } }
   ApiGatewayMethodUserPut:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -122,8 +142,10 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
-
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-UserFunctionArn" } } }
   ApiGatewayMethodUserDelete:
     Type: 'AWS::ApiGateway::Method'
     Properties:
@@ -134,8 +156,10 @@ Resources:
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
         Type: 'AWS_PROXY' # Integracion proxy con Lambda
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
-
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-UserFunctionArn" } } }
   #######################################################################################################################################
   # Se crea el recurso registration y los metodos GET, POST y Delete 
   #######################################################################################################################################

@@ -109,9 +109,5 @@ jobs:
             --parameter-overrides ProjectName=${PROJECT_NAME} \
             --region ${AWS_REGION}
 
-
-          
-
-          
       - name: Summary
         run: echo "✅ Deploy OK" >> $GITHUB_STEP_SUMMARY

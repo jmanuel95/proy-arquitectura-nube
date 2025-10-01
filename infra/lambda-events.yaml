@@ -16,7 +16,10 @@ Parameters:
     Type: String
   CodeS3KeyEvent:
     Type: String
-    
+  ProjectName:
+    Type: String
+
+
 Resources:
   CreateEventLambdaFunctionRole:
     Type: 'AWS::IAM::Role'
@@ -131,7 +134,7 @@ Resources:
       RetentionInDays: 30  # Retener logs por 30 dias
 
   # Lambda para User Management
-  CreateUserLambda: 
+  CreateUserLambdaFunction: 
     Type: 'AWS::Lambda::Function'
     DependsOn: CreateUserLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
     Properties:
@@ -149,3 +152,16 @@ Resources:
           TABLE_NAME: !ImportValue UserTableName
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
+
+Outputs:
+  EventFunctionArn:
+    Description: ARN de la Lambda de eventos
+    Value: !GetAtt CreateEventLambdaFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-EventFunctionArn"
+
+  UserFunctionArn:
+    Description: ARN de la Lambda de usuarios
+    Value: !GetAtt CreateUserLambdaFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-UserFunctionArn"
