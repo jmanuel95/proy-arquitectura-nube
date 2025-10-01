@@ -22,13 +22,13 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Create S3 code bucket stack
-        run: |
-          aws cloudformation deploy \
-            --template-file infra/s3-code-bucket.yaml \
-            --stack-name ${{ env.PROJECT_NAME }}-lambda-code-bucket \
-            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} \
-            --region ${{ env.AWS_REGION }}
+#      - name: Create S3 code bucket stack
+#        run: |
+#          aws cloudformation deploy \
+#            --template-file infra/s3-code-bucket.yaml \
+#            --stack-name ${{ env.PROJECT_NAME }}-lambda-code-bucket \
+#            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} \
+#            --region ${{ env.AWS_REGION }}
 
       - name: Show bucket name
         run: |
