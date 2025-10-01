@@ -228,3 +228,22 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGatewayRestApi 
       StageName: 'prod'
+
+  LambdaInvokePermissionEvent:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction' # Accion permitida
+      FunctionName:
+        Fn::ImportValue: !Sub "${ProjectName}-EventFunctionArn"  # Funcion a la que se otorga permiso
+      Principal: 'apigateway.amazonaws.com' # Servicio que puede invocar
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*"
+
+  # Permitir a API Gateway invocar Lambda para usuario
+  LambdaInvokePermissionUser:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction' # Accion permitida
+      FunctionName:
+        Fn::ImportValue: !Sub "${ProjectName}-UserFunctionArn"
+      Principal: 'apigateway.amazonaws.com' # Servicio que puede invocar
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*"
