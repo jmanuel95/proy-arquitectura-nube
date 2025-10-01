@@ -49,9 +49,10 @@ Resources:
                   - dynamodb:UpdateItem
                   - dynamodb:GetItem
                 Resource:
-                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}
-                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/*
-
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/EventManagementTable
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/EventManagementTable/index/*
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/UserManagementTable
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/UserManagementTable/index/*
 
   ###################################
   # Lambda (usa rol existente + código en S3)
@@ -126,3 +127,5 @@ Outputs:
   EventsApiEndpoint:
     Description: URL del endpoint para crear eventos
     Value: !Sub 'https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/events'
+    LambdaRoleName:
+    Value: !Ref UsersLambdaRole
