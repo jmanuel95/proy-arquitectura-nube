@@ -226,5 +226,5 @@ Resources:
       - ApiGatewayMethodUserPut
       - ApiGatewayMethodUserDelete
     Properties:
-      RestApiId: !Ref ApiGatewayRestApi
+      RestApiId: !Ref ApiGatewayRestApi 
       StageName: 'prod'
