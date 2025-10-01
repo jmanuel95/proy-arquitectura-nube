@@ -127,5 +127,5 @@ Outputs:
   EventsApiEndpoint:
     Description: URL del endpoint para crear eventos
     Value: !Sub 'https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/events'
-    LambdaRoleName:
+  LambdaRoleName:
     Value: !Ref UsersLambdaRole
