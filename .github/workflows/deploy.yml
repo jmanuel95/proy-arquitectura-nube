@@ -56,7 +56,7 @@ jobs:
         run: |
           aws cloudformation deploy \
             --template-file infra/s3-code-bucket.yaml \
-            --stack-name ${PROJECT_NAME}-lambda-code-bucket \
+            --stack-name ${PROJECT_NAME}-lambda-code-bucket-jm \
             --parameter-overrides ProjectName=${PROJECT_NAME} \
             --region ${AWS_REGION}
           CODE_BUCKET=$(aws cloudformation describe-stacks \

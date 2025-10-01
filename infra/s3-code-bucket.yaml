@@ -10,7 +10,7 @@ Resources:
   LambdaCodeBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${ProjectName}-lambda-code-${AWS::AccountId}-${AWS::Region}
+      BucketName: !Sub ${ProjectName}-lambda-code-jm-${AWS::AccountId}-${AWS::Region}
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
