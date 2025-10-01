@@ -80,9 +80,15 @@ jobs:
           echo "CODE_S3_KEY_EVENT=$CODE_S3_KEY_EVENT" >> $GITHUB_ENV
           aws s3 cp dist/add_event.zip "s3://$CODE_BUCKET/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
 
-      # 4) Desplegar API + Lambda (usa TableName del template o pásalo si quieres forzarlo)
+      - name: Deploy DynamoDB tables
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${PROJECT_NAME}-dynamodb" \
+            --template-file infra/dynamodb.yaml \
+            --parameter-overrides ProjectName="${PROJECT_NAME}" \
+            --region "${AWS_REGION}"
 
-      - name: Deploy API + Lambda
+      - name: Lambda
         run: |
           aws cloudformation deploy \
             --template-file infra/lambda-events.yaml \
@@ -94,22 +100,6 @@ jobs:
               CodeS3Key=${CODE_S3_KEY} \
             --region ${AWS_REGION}
 
-      - name: Deploy restapi
-        run: |
-          aws cloudformation deploy \
-            --template-file infra/restapi.yaml \
-            --stack-name ${PROJECT_NAME}-users-api \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --region ${AWS_REGION}
-
-      - name: Deploy DynamoDB tables
-        run: |
-          aws cloudformation deploy \
-            --stack-name "${PROJECT_NAME}-dynamodb" \
-            --template-file infra/dynamodb.yaml \
-            --parameter-overrides ProjectName="${PROJECT_NAME}" \
-            --region "${AWS_REGION}"
-          
       - name: Deploy API
         run: |
           aws cloudformation deploy \
@@ -117,6 +107,10 @@ jobs:
             --stack-name ${PROJECT_NAME}-restapi \
             --parameter-overrides ProjectName=${PROJECT_NAME} \
             --region ${AWS_REGION}
+
+
+          
+
           
       - name: Summary
         run: echo "✅ Deploy OK" >> $GITHUB_STEP_SUMMARY

@@ -9,6 +9,12 @@ Metadata:
   Version: "1.0"
   LastUpdated: "2025"
 
+Parameters:
+  CodeS3Bucket:
+    Type: String
+  CodeS3Key:
+    Type: String
+
 Resources:
   CreateEventLambdaFunctionRole:
     Type: 'AWS::IAM::Role'
