@@ -51,34 +51,17 @@ jobs:
           cd lambda/add_event
           zip -r ../../dist/add_event.zip app.py
 
-      # 2) Bucket para código: CFN idempotente + leer Output con el nombre real
-      - name: Ensure code bucket (CFN) + resolve name
-        run: |
-          aws cloudformation deploy \
-            --template-file infra/s3-code-bucket.yaml \
-            --stack-name ${PROJECT_NAME}-lambda-code-bucket-jm \
-            --parameter-overrides ProjectName=${PROJECT_NAME} \
-            --region ${AWS_REGION}
-          CODE_BUCKET=$(aws cloudformation describe-stacks \
-            --stack-name "${PROJECT_NAME}-lambda-code-bucket" \
-            --region ${AWS_REGION} \
-            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
-            --output text)
-          echo "CODE_BUCKET=$CODE_BUCKET" >> $GITHUB_ENV
-          aws s3api head-bucket --bucket "$CODE_BUCKET" --region ${AWS_REGION}
-
-      # 3) Subir ZIP versionado por commit
       - name: Upload ZIP to S3
         run: |
           CODE_S3_KEY=lambda/users_create-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY=$CODE_S3_KEY" >> $GITHUB_ENV
-          aws s3 cp dist/users_create.zip "s3://$CODE_BUCKET/$CODE_S3_KEY" --region ${AWS_REGION}
+          aws s3 cp dist/users_create.zip "s3://events-app-lambda-code-jm-884234865118-us-west-2/lambda/$CODE_S3_KEY" --region ${AWS_REGION}
 
       - name: Upload ZIP to S3 event
         run: |
           CODE_S3_KEY_EVENT=lambda/add_event-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY_EVENT=$CODE_S3_KEY_EVENT" >> $GITHUB_ENV
-          aws s3 cp dist/add_event.zip "s3://$CODE_BUCKET/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
+          aws s3 cp dist/users_create.zip "s3://events-app-lambda-code-jm-884234865118-us-west-2/lambda/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
 
       - name: Deploy DynamoDB tables
         run: |
