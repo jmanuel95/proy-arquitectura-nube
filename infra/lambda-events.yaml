@@ -74,7 +74,7 @@ Resources:
     DependsOn: CreateEventLambdaFunctionLogGroup  # Asegura que el log group existe antes que la Lambda
     Properties:
       FunctionName: 'EventManagementLambda' # Nombre fijo de la funcion
-      Handler: 'events_management_lambda.lambda_handler'
+      Handler: 'app.handler'
       Runtime: python3.12  # Version actualizada de Python
       Code:
         S3Bucket: events-app-lambda-code-884234865118-us-west-2  # Bucket con nombre unico por cuenta/region
@@ -139,7 +139,7 @@ Resources:
     DependsOn: CreateUserLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
     Properties:
       FunctionName: 'UserManagementLambda' # Nombre fijo de la funcion
-      Handler: 'users_management_lambda.lambda_handler'
+      Handler: 'app.handler'
       Runtime: python3.12  # Version actualizada de Python
       Code:
         S3Bucket: events-app-lambda-code-884234865118-us-west-2  # Bucket con nombre unico por cuenta/region
