@@ -72,7 +72,7 @@ jobs:
         run: |
           CODE_S3_KEY_SELL=lambda/add_compra-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY_SELL=$CODE_S3_KEY_SELL" >> $GITHUB_ENV
-          aws s3 cp dist/add_event.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_SELL" --region ${AWS_REGION
+          aws s3 cp dist/add_event.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_SELL" --region ${AWS_REGION}
 
 
       - name: Deploy DynamoDB tables
