@@ -292,48 +292,48 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationSqsConsumerLambda*
 
-RegistrationSqsConsumerLogGroup:
-  Type: AWS::Logs::LogGroup
-  Properties:
-    LogGroupName: /aws/lambda/RegistrationSqsConsumerLambda
-    RetentionInDays: 14
-
-
-    Type: 'AWS::Lambda::Function'
-    DependsOn: CreateRegistrationLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
+  RegistrationSqsConsumerLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      FunctionName: 'RegistrationManagementLambda' # Nombre fijo de la funcion
-      Handler: 'app.handler'
-      Runtime: python3.12  # Version actualizada de Python
+      LogGroupName: /aws/lambda/RegistrationSqsConsumerLambda
+      RetentionInDays: 14
 
-RegistrationSqsConsumerLambda:
-  Type: AWS::Lambda::Function
-  DependsOn: RegistrationSqsConsumerLogGroup 
-  Properties:
-    FunctionName: RegistrationSqsConsumerLambda
-    Handler: app.handler
-    Runtime: python3.12              # mismo handler style que usas
-    Role: !GetAtt RegistrationSqsConsumerLambdaRole.Arn
-    MemorySize: 256
-    Timeout: 30
-    Environment:
-      Variables:
-        REGION: !Ref AWS::Region
-        LOG_LEVEL: INFO
-        SQS_QUEUE_URL: !ImportValue RegistrationQueueUrl   # ya existente en tu stack de SQS
-    Code:
-      S3Bucket: !Ref CodeS3Bucket
-      S3Key: !Ref CodeS3KeySqsConsumer
 
-RegistrationSqsConsumerEventSourceMapping:
-  Type: AWS::Lambda::EventSourceMapping
-  Properties:
-    EventSourceArn: !ImportValue RegistrationQueueArn   # ARN de la cola SQS
-    FunctionName: !Ref RegistrationSqsConsumerLambda
-    BatchSize: 10
-    MaximumBatchingWindowInSeconds: 1
-    Enabled: true
-    FunctionResponseTypes:
+      Type: 'AWS::Lambda::Function'
+      DependsOn: CreateRegistrationLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
+      Properties:
+        FunctionName: 'RegistrationManagementLambda' # Nombre fijo de la funcion
+        Handler: 'app.handler'
+        Runtime: python3.12  # Version actualizada de Python
+
+  RegistrationSqsConsumerLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: RegistrationSqsConsumerLogGroup 
+    Properties:
+      FunctionName: RegistrationSqsConsumerLambda
+      Handler: app.handler
+      Runtime: python3.12              # mismo handler style que usas
+      Role: !GetAtt RegistrationSqsConsumerLambdaRole.Arn
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          REGION: !Ref AWS::Region
+          LOG_LEVEL: INFO
+          SQS_QUEUE_URL: !ImportValue RegistrationQueueUrl   # ya existente en tu stack de SQS
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3KeySqsConsumer
+
+  RegistrationSqsConsumerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !ImportValue RegistrationQueueArn   # ARN de la cola SQS
+      FunctionName: !Ref RegistrationSqsConsumerLambda
+      BatchSize: 10
+      MaximumBatchingWindowInSeconds: 1
+      Enabled: true
+      FunctionResponseTypes:
 
 
 Outputs:
