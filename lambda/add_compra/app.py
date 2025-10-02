@@ -138,7 +138,7 @@ def handler(event, context):
     except Exception as e:
         return _resp(500, {"message": "Internal error", "detail": str(e)})
 
-    # 4) Si quedó en 0, marcar como DESHABILITADO
+    # 4) Si quedó en 0, marcar como DESHABILITADO 
     try:
         events_table.update_item(
             Key={"EventId": event_id},
