@@ -127,7 +127,7 @@ def handler(event, context):
                     }
                 }
             ],
-            ReturnCancellationReasons=True
+            #ReturnCancellationReasons=True
         )
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "")
