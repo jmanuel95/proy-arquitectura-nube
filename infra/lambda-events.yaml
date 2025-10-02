@@ -264,7 +264,7 @@ Resources:
           REGISTRATION_TABLE: !ImportValue RegistrationTableName
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
-          SQS_QUEUE_URL: https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/RegistrationQueueUrl # ← cámbiala
+          SQS_QUEUE_URL: !ImportValue RegistrationQueueUrl  # ← cámbiala
 
 Outputs:
   EventFunctionArn:
