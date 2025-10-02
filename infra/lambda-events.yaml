@@ -117,7 +117,7 @@ Resources:
                   - 'logs:CreateLogGroup'
                   - 'logs:CreateLogStream'
                   - 'logs:PutLogEvents'
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/UserManagementFunction*"  # Permisos especificos de logs para esta funcion
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/UserManagementLambda*"  # Permisos especificos de logs para esta funcion
               - Effect: 'Allow'
                 Action:
                   - 'dynamodb:PutItem'
@@ -141,6 +141,7 @@ Resources:
       LogGroupName: "/aws/lambda/UserManagementLambda"  # Nombre especifico del grupo de logs
       RetentionInDays: 30  # Retener logs por 30 dias
 
+
   # Lambda para User Management
   CreateUserLambdaFunction: 
     Type: 'AWS::Lambda::Function'
@@ -161,7 +162,8 @@ Resources:
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
 
-  # Lambda para User Management
+
+
   CreateRegistrationLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -182,7 +184,7 @@ Resources:
                   - 'logs:CreateLogGroup'
                   - 'logs:CreateLogStream'
                   - 'logs:PutLogEvents'
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationManagementFunction*"  # Permisos especificos de logs para esta funcion
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationManagementLambda*"  # Permisos especificos de logs para esta funcion
               - Effect: 'Allow'
                 Action:
                   - 'dynamodb:PutItem'
@@ -234,12 +236,13 @@ Resources:
                 Resource:
                   - !ImportValue RegistrationQueueArn
 
-
   CreateRegistrationLambdaLogGroup:
     Type: 'AWS::Logs::LogGroup'
     Properties:
       LogGroupName: "/aws/lambda/RegistrationManagementLambda"  # Nombre especifico del grupo de logs
       RetentionInDays: 30  # Retener logs por 30 dias
+ 
+
                   
   CreateRegistrationLambdaFunction: 
     Type: 'AWS::Lambda::Function'
