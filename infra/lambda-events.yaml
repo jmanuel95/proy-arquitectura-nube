@@ -223,7 +223,15 @@ Resources:
                 Resource:
                   - !ImportValue EventTableArn   # ← tabla de eventos
                   - !ImportValue UserTableArn    # ← tabla de usuarios
-
+              - Effect: Allow
+                Action:
+                  - dynamodb:ConditionCheckItem   # validar usuario existe
+                Resource:
+                  - !ImportValue UserTableArn
+              - Effect: Allow
+                Action:
+                  - dynamodb:TransactWriteItems
+                Resource: "*"
 
   CreateRegistrationLambdaLogGroup:
     Type: 'AWS::Logs::LogGroup'
