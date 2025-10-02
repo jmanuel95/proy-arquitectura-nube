@@ -299,13 +299,6 @@ Resources:
       RetentionInDays: 14
 
 
-      Type: 'AWS::Lambda::Function'
-      DependsOn: CreateRegistrationLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
-      Properties:
-        FunctionName: 'RegistrationManagementLambda' # Nombre fijo de la funcion
-        Handler: 'app.handler'
-        Runtime: python3.12  # Version actualizada de Python
-
   RegistrationSqsConsumerLambda:
     Type: AWS::Lambda::Function
     DependsOn: RegistrationSqsConsumerLogGroup 
