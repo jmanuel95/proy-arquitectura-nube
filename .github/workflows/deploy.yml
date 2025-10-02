@@ -74,6 +74,13 @@ jobs:
           echo "CODE_S3_KEY_SELL=$CODE_S3_KEY_SELL" >> $GITHUB_ENV
           aws s3 cp dist/add_compra.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_SELL" --region ${AWS_REGION}
 
+      - name: Upload ZIP to S3 correo compra
+        run: |
+          CODE_S3_KEY_SQS_CONSUMER=lambda/envio_correo_compra-${GITHUB_SHA}.zip
+          echo "CODE_S3_KEY_SQS_CONSUMER=$CODE_S3_KEY_SQS_CONSUMER" >> $GITHUB_ENV
+          aws s3 cp dist/envio_correo_compra.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_SQS_CONSUMER" --region ${AWS_REGION}
+
+
 
       - name: Deploy DynamoDB tables
         run: |
@@ -103,6 +110,7 @@ jobs:
               CodeS3Key=${CODE_S3_KEY} \
               CodeS3KeyEvent=${CODE_S3_KEY_EVENT} \
               CodeS3KeyRegister=${CODE_S3_KEY_SELL} \
+              CodeS3KeySqsConsumer=${CODE_S3_KEY_SQS_CONSUMER} \
             --region ${AWS_REGION}
 
       - name: Deploy API
