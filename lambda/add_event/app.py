@@ -6,7 +6,7 @@ dynamodb = boto3.resource("dynamodb")
 events_table = dynamodb.Table(os.environ["EVENTS_TABLE"])
 users_table = dynamodb.Table(os.environ["USERS_TABLE"])
 
-def lambda_handler(event, context):
+def handler(event, context):
     try:
         body = json.loads(event["body"])
 
