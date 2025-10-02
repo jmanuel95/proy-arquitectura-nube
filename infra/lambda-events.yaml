@@ -273,6 +273,7 @@ Resources:
   RegistrationSqsConsumerLambdaRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub "${ProjectName}-RegistrationSqsConsumerLambdaRole"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -285,12 +286,14 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              - Effect: 'Allow'
+              - Effect: Allow
                 Action:
-                  - 'logs:CreateLogGroup'
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationSqsConsumerLambda*
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationSqsConsumerLambda*"
+              # (añade aquí otros permisos si el consumer necesita acceder a otros servicios)
+  
 
   RegistrationSqsConsumerLogGroup:
     Type: AWS::Logs::LogGroup
