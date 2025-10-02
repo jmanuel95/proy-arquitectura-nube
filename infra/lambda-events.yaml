@@ -292,6 +292,15 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationSqsConsumerLambda*"
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ChangeMessageVisibility
+                  - sqs:DeleteMessageBatch
+                  - sqs:ChangeMessageVisibilityBatch
+                Resource: !ImportValue RegistrationQueueArn
               # (añade aquí otros permisos si el consumer necesita acceder a otros servicios)
 
 
