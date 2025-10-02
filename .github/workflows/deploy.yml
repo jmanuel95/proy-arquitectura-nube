@@ -94,6 +94,7 @@ jobs:
               CodeS3Bucket=${CODE_BUCKET} \
               CodeS3Key=${CODE_S3_KEY} \
               CodeS3KeyEvent=${CODE_S3_KEY_EVENT} \
+              CodeS3KeyRegister=${CODE_S3_KEY_SELL} \
             --region ${AWS_REGION}
 
       - name: Deploy API
