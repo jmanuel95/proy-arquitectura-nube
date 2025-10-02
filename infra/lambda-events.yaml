@@ -173,7 +173,7 @@ Resources:
               Service: 'lambda.amazonaws.com' # Permite que Lambda asuma este rol
             Action: 'sts:AssumeRole'
       Policies:
-        - PolicyName: 'UserLambdaExecutionPolicy' # Nombre unico para la politica de UserManagement
+        - PolicyName: 'RegistrationLambdaExecutionPolicy' # Nombre unico para la politica de UserManagement
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -206,6 +206,24 @@ Resources:
                 Resource: !Sub
                   - "${TableArn}/index/*"
                   - { TableArn: { "Fn::ImportValue": "RegistrationTableArn" } }  # Acceso a indices secundarios
+              - Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !ImportValue EventTableArn
+              
+              - Effect: Allow
+                Action:
+                  - dynamodb:TransactWriteItems
+                Resource: "*" 
+              
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource:
+                  - !ImportValue EventTableArn   # ← tabla de eventos
+                  - !ImportValue UserTableArn    # ← tabla de usuarios
+
 
   CreateRegistrationLambdaLogGroup:
     Type: 'AWS::Logs::LogGroup'
