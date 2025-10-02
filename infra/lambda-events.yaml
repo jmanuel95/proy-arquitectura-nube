@@ -55,6 +55,11 @@ Resources:
                  #!GetAtt EventManagementTable.Arn # Referencia dinamica a la tabla
               - Effect: 'Allow'
                 Action:
+                  - 'dynamodb:GetItem'
+                Resource:
+                  - !ImportValue "UserTableArn"               
+              - Effect: 'Allow'
+                Action:
                   - 'dynamodb:Query'
                   - 'dynamodb:Scan' # Operaciones de consulta en indices secundarios
                 Resource: !Sub 
