@@ -84,7 +84,8 @@ Resources:
       Role: !GetAtt CreateEventLambdaFunctionRole.Arn  # Referencia al rol IAM creado anteriormente
       Environment: # Variables de entorno para configuracion dinamica
         Variables:
-          TABLE_NAME: !ImportValue EventTableName
+          EVENTS_TABLE: !ImportValue EventTableName   # nombre de la tabla de eventos
+          USERS_TABLE:  !ImportValue UserTableName    # nombre de la tabla de usuarios
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
 
