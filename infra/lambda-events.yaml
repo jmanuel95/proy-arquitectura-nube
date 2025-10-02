@@ -318,7 +318,7 @@ Resources:
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO
       Code:
-        S3Bucket: !Ref CodeS3Bucket
+        S3Bucket: events-app-lambda-code-884234865118-us-west-2 
         S3Key: !Ref CodeS3KeySqsConsumer
 
   RegistrationSqsConsumerEventSourceMapping:
