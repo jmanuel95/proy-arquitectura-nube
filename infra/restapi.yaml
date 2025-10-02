@@ -168,51 +168,70 @@ Resources:
   # Se crea el recurso registration y los metodos GET, POST y Delete 
   #######################################################################################################################################
 
-#  # Recurso para Registration Management
-#  ApiGatewayResourceRegistration:
-#    Type: 'AWS::ApiGateway::Resource'
-#    Properties:
-#      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId  # Recurso padre (raiz)
-#      PathPart: 'registration' # Ruta del endpoint
-#      RestApiId: !Ref ApiGatewayRestApi
+  # Recurso para Registration Management
+  ApiGatewayResourceRegistration:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId  # Recurso padre (raiz)
+      PathPart: 'registration' # Ruta del endpoint
+      RestApiId: !Ref ApiGatewayRestApi
+ # CRUD para RegistrationManagementLambda (GET, POST, DELETE)
+  ApiGatewayMethodRegistrationGet:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'GET'
+      ResourceId: !Ref ApiGatewayResourceRegistration
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-RegistrationFunctionArn" } } }
 
-  # CRUD para RegistrationManagementLambda (GET, POST, DELETE)
-#  ApiGatewayMethodRegistrationGet:
-#    Type: 'AWS::ApiGateway::Method'
-#    Properties:
-#      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
-#      HttpMethod: 'GET'
-#      ResourceId: !Ref ApiGatewayResourceRegistration
-#      RestApiId: !Ref ApiGatewayRestApi
-#      Integration: # Configuracion de integracion con el servicio backend (Lambda)
-#        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
-#        Type: 'AWS_PROXY' # Integracion proxy con Lambda
-#        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
-# 
-#  ApiGatewayMethodRegistrationPost:
-#    Type: 'AWS::ApiGateway::Method'
-#    Properties:
-#      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
-#      HttpMethod: 'POST'
-#      ResourceId: !Ref ApiGatewayResourceRegistration
-#      RestApiId: !Ref ApiGatewayRestApi
-#      Integration: # Configuracion de integracion con el servicio backend (Lambda)
-#        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
-#        Type: 'AWS_PROXY' # Integracion proxy con Lambda
-#        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
-#
-#  ApiGatewayMethodRegistrationDelete:
-#    Type: 'AWS::ApiGateway::Method'
-#    Properties:
-#      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
-#      HttpMethod: 'DELETE'
-#      ResourceId: !Ref ApiGatewayResourceRegistration
-#      RestApiId: !Ref ApiGatewayRestApi
-#      Integration: # Configuracion de integracion con el servicio backend (Lambda)
-#        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
-#        Type: 'AWS_PROXY' # Integracion proxy con Lambda
-#        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RegistrationLambdaFunction.Arn}/invocations'
-#
+  ApiGatewayMethodRegistrationPost:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'POST'
+      ResourceId: !Ref ApiGatewayResourceRegistration
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-RegistrationFunctionArn" } } }
+
+  ApiGatewayMethodRegistrationPut:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'PUT'
+      ResourceId: !Ref ApiGatewayResourceUser
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        #Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UserManagementLambdaFunction.Arn}/invocations'
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-RegistrationFunctionArn" } } }
+
+  ApiGatewayMethodRegistrationDelete:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
+      HttpMethod: 'DELETE'
+      ResourceId: !Ref ApiGatewayResourceRegistration
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration: # Configuracion de integracion con el servicio backend (Lambda)
+        IntegrationHttpMethod: 'POST' # Siempre POST para Lambda
+        Type: 'AWS_PROXY' # Integracion proxy con Lambda
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FnArn}/invocations"
+          - { FnArn: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-RegistrationFunctionArn" } } }
 
   ApiGatewayDeployment:
     Type: 'AWS::ApiGateway::Deployment'
@@ -225,6 +244,10 @@ Resources:
       - ApiGatewayMethodUserGet
       - ApiGatewayMethodUserPut
       - ApiGatewayMethodUserDelete
+      - ApiGatewayMethodRegistrationPost
+      - ApiGatewayMethodRegistrationGet
+      - ApiGatewayMethodRegistrationPut
+      - ApiGatewayMethodRegistrationDelete
     Properties:
       RestApiId: !Ref ApiGatewayRestApi 
       StageName: 'prod'
@@ -245,5 +268,14 @@ Resources:
       Action: 'lambda:InvokeFunction' # Accion permitida
       FunctionName:
         Fn::ImportValue: !Sub "${ProjectName}-UserFunctionArn"
+      Principal: 'apigateway.amazonaws.com' # Servicio que puede invocar
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*"
+
+  LambdaInvokePermissionRegistration:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction' # Accion permitida
+      FunctionName:
+        Fn::ImportValue: !Sub "${ProjectName}-RegistrationFunctionArn"
       Principal: 'apigateway.amazonaws.com' # Servicio que puede invocar
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*"

@@ -50,6 +50,12 @@ jobs:
           cd lambda/add_event
           zip -r ../../dist/add_event.zip app.py
 
+      - name: Zip Lambda registration
+        run: |
+          mkdir -p dist
+          cd lambda/add_compra
+          zip -r ../../dist/add_compra.zip app.py
+
       - name: Upload ZIP to S3
         run: |
           CODE_S3_KEY=lambda/users_create-${GITHUB_SHA}.zip
@@ -61,6 +67,13 @@ jobs:
           CODE_S3_KEY_EVENT=lambda/add_event-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY_EVENT=$CODE_S3_KEY_EVENT" >> $GITHUB_ENV
           aws s3 cp dist/add_event.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
+
+      - name: Upload ZIP to S3 sell
+        run: |
+          CODE_S3_KEY_SELL=lambda/add_compra-${GITHUB_SHA}.zip
+          echo "CODE_S3_KEY_SELL=$CODE_S3_KEY_SELL" >> $GITHUB_ENV
+          aws s3 cp dist/add_event.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_SELL" --region ${AWS_REGION
+
 
       - name: Deploy DynamoDB tables
         run: |

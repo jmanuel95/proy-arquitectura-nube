@@ -16,6 +16,8 @@ Parameters:
     Type: String
   CodeS3KeyEvent:
     Type: String
+  CodeS3KeyRegister:
+    Type: String
   ProjectName:
     Type: String
 
@@ -159,6 +161,79 @@ Resources:
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
 
+  # Lambda para User Management
+  CreateRegistrationLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'lambda.amazonaws.com' # Permite que Lambda asuma este rol
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'UserLambdaExecutionPolicy' # Nombre unico para la politica de UserManagement
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationManagementFunction*"  # Permisos especificos de logs para esta funcion
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource:
+                  - !ImportValue "RegistrationTableArn"
+                 #!GetAtt EventManagementTable.Arn # Referencia dinamica a la tabla
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:PutItem'
+                Resource:
+                  - !ImportValue "EventTableArn"               
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan' # Operaciones de consulta en indices secundarios
+                Resource: !Sub
+                  - "${TableArn}/index/*"
+                  - { TableArn: { "Fn::ImportValue": "RegistrationTableArn" } }  # Acceso a indices secundarios
+
+  CreateRegistrationLambdaLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: "/aws/lambda/RegistrationManagementLambda"  # Nombre especifico del grupo de logs
+      RetentionInDays: 30  # Retener logs por 30 dias
+                  
+  CreateRegistrationLambdaFunction: 
+    Type: 'AWS::Lambda::Function'
+    DependsOn: CreateRegistrationLambdaLogGroup  # Asegura que el log group existe antes que la Lambda
+    Properties:
+      FunctionName: 'RegistrationManagementLambda' # Nombre fijo de la funcion
+      Handler: 'app.handler'
+      Runtime: python3.12  # Version actualizada de Python
+      Code:
+        S3Bucket: events-app-lambda-code-884234865118-us-west-2  # Bucket con nombre unico por cuenta/region
+        S3Key: !Ref CodeS3KeyRegister # Archivo ZIP con el codigo fuente
+      MemorySize: 128  # Memoria asignada en MB
+      Timeout: 20  # Timeout en segundos
+      Role: !GetAtt CreateRegistrationLambdaRole.Arn  # Referencia al rol IAM
+      Environment: # Variables de entorno para configuracion dinamica
+        Variables:
+          EVENTS_TABLE: !ImportValue EventTableName   # nombre de la tabla de eventos
+          USERS_TABLE:  !ImportValue UserTableName    # nombre de la tabla de usuarios
+          REGISTRATION_TABLE: !ImportValue RegistrationTableName
+          REGION: !Ref AWS::Region
+          LOG_LEVEL: INFO  # Nivel de logging configurable
+
 Outputs:
   EventFunctionArn:
     Description: ARN de la Lambda de eventos
@@ -171,3 +246,11 @@ Outputs:
     Value: !GetAtt CreateUserLambdaFunction.Arn
     Export:
       Name: !Sub "${ProjectName}-UserFunctionArn"
+
+  RegistrationFunctionArn:
+    Description: ARN de la Lambda de registro de ventas
+    Value: !GetAtt CreateRegistrationLambdaFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-RegistrationFunctionArn"
+
+      
