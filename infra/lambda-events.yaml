@@ -293,7 +293,7 @@ Resources:
                   - logs:PutLogEvents
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationSqsConsumerLambda*"
               # (añade aquí otros permisos si el consumer necesita acceder a otros servicios)
-  
+
 
   RegistrationSqsConsumerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -347,6 +347,6 @@ Outputs:
 
   RegistrationFunctionArn:
     Description: ARN de la Lambda de registration/compra
-    Value: !GetAtt RegistrationManagementLambda.Arn
+    Value: !GetAtt CreateRegistrationLambdaFunction.Arn
     Export:
       Name: !Sub "${ProjectName}-RegistrationFunctionArn"
