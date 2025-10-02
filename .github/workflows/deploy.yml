@@ -60,7 +60,7 @@ jobs:
         run: |
           CODE_S3_KEY_EVENT=lambda/add_event-${GITHUB_SHA}.zip
           echo "CODE_S3_KEY_EVENT=$CODE_S3_KEY_EVENT" >> $GITHUB_ENV
-          aws s3 cp dist/users_create.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
+          aws s3 cp dist/add_event.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_EVENT" --region ${AWS_REGION}
 
       - name: Deploy DynamoDB tables
         run: |

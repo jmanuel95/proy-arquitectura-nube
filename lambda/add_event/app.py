@@ -22,6 +22,7 @@ def lambda_handler(event, context):
         role = user_resp["Item"].get("Role")
         if role == "CLIENTE":
             return {"statusCode": 403, "body": json.dumps({"error": "Clientes no pueden crear eventos"})}
+        
 
         # Insertar evento
         event_item = {
