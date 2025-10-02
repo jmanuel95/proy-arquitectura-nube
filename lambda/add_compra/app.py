@@ -5,13 +5,14 @@ import uuid
 from datetime import datetime, timezone
 from botocore.exceptions import ClientError
 
-# Mismo estilo: resource para tablas + client para TransactWrite
-dynamo_resource = boto3.resource("dynamodb")
-events_table = dynamo_resource.Table(os.environ["EVENTS_TABLE"])
-users_table = dynamo_resource.Table(os.environ["USERS_TABLE"])
-registrations_table = dynamo_resource.Table(os.environ["REGISTRATION_TABLE"])
+# DynamoDB
+ddb_res = boto3.resource("dynamodb")
+events_table = ddb_res.Table(os.environ["EVENTS_TABLE"])
+users_table = ddb_res.Table(os.environ["USERS_TABLE"])
+registrations_table = ddb_res.Table(os.environ["REGISTRATION_TABLE"])
+ddb_cli = boto3.client("dynamodb")
 
-dynamo_client = boto3.client("dynamodb")
+DISABLED_STATES = {"DESACTIVADO", "DESHABILITADO", "INHABILITADO"}
 
 def _resp(status, body):
     return {
@@ -25,13 +26,13 @@ def _resp(status, body):
     }
 
 def handler(event, context):
-    # CORS preflight
+    # CORS / método
     if event.get("httpMethod") == "OPTIONS":
         return _resp(200, {"ok": True})
     if event.get("httpMethod") and event["httpMethod"] != "POST":
         return _resp(405, {"message": "Method Not Allowed"})
 
-    # Body JSON
+    # Parseo del body
     try:
         body = event.get("body", event)
         if isinstance(body, str):
@@ -41,26 +42,51 @@ def handler(event, context):
 
     user_id = body.get("UserId")
     event_id = body.get("EventId")
-    qty = int(body.get("Quantity", 1))
+    num = body.get("NumEntradas")
 
-    if not user_id or not event_id or qty < 1:
-        return _resp(400, {"message": "UserId, EventId y Quantity>=1 son requeridos"})
-
-    # Validar que el usuario exista (respuesta 404 si no)
+    # Validaciones básicas
     try:
-        user_resp = users_table.get_item(Key={"UserId": user_id})
-        if "Item" not in user_resp:
-            return _resp(404, {"message": "Usuario no encontrado"})
+        num = int(num)
+    except Exception:
+        return _resp(400, {"message": "NumEntradas debe ser un número entero >= 1"})
+    if not user_id or not event_id or num < 1:
+        return _resp(400, {"message": "UserId, EventId y NumEntradas>=1 son requeridos"})
+
+    # 1) Verificar evento
+    try:
+        evt = events_table.get_item(
+            Key={"EventId": event_id},
+            ProjectionExpression="#E, Quantity, EventStatus",
+            ExpressionAttributeNames={"#E": "EventId"}
+        ).get("Item")
+    except ClientError as e:
+        return _resp(500, {"message": "Error consultando evento", "detail": str(e)})
+
+    if not evt:
+        return _resp(404, {"message": "El evento no existe"})
+
+    available = int(evt.get("Quantity", 0))
+    status = str(evt.get("EventStatus", "")).upper()
+    if status in DISABLED_STATES:
+        return _resp(409, {"message": "El evento está desactivado"})
+    if num > available:
+        return _resp(409, {"message": "entradas no disponibles"})
+
+    # 2) Verificar usuario
+    try:
+        u = users_table.get_item(Key={"UserId": user_id}).get("Item")
     except ClientError as e:
         return _resp(500, {"message": "Error consultando usuario", "detail": str(e)})
 
-    # Datos registro
+    if not u:
+        return _resp(403, {"message": "Usuario no registrado. Debe registrarse antes de comprar."})
+
+    # 3) Transacción: validar usuario, descontar stock y registrar compra
     reg_id = body.get("RegistrationId") or str(uuid.uuid4())
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Transacción: 1) usuario existe, 2) descontar stock si hay suficiente, 3) insertar registro
     try:
-        dynamo_client.transact_write_items(
+        ddb_cli.transact_write_items(
             TransactItems=[
                 {
                     "ConditionCheck": {
@@ -74,8 +100,17 @@ def handler(event, context):
                         "TableName": os.environ["EVENTS_TABLE"],
                         "Key": {"EventId": {"S": event_id}},
                         "UpdateExpression": "SET Quantity = Quantity - :q",
-                        "ConditionExpression": "attribute_exists(EventId) AND Quantity >= :q",
-                        "ExpressionAttributeValues": {":q": {"N": str(qty)}}
+                        "ConditionExpression": (
+                            "attribute_exists(EventId) AND Quantity >= :q AND "
+                            "(attribute_not_exists(EventStatus) OR "
+                            "(EventStatus <> :d1 AND EventStatus <> :d2 AND EventStatus <> :d3))"
+                        ),
+                        "ExpressionAttributeValues": {
+                            ":q": {"N": str(num)},
+                            ":d1": {"S": "DESACTIVADO"},
+                            ":d2": {"S": "DESHABILITADO"},
+                            ":d3": {"S": "INHABILITADO"}
+                        }
                     }
                 },
                 {
@@ -86,59 +121,48 @@ def handler(event, context):
                             "RegistrationDate": {"S": now_iso},
                             "RegistrationEventId": {"S": event_id},
                             "RegistrationUserId": {"S": user_id},
-                            "Quantity": {"N": str(qty)}
+                            "Quantity": {"N": str(num)}
                         },
                         "ConditionExpression": "attribute_not_exists(RegistrationId)"
                     }
                 }
             ],
-            ReturnCancellationReasons=True  # para diferenciar causas de error
+            ReturnCancellationReasons=True
         )
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "")
         if code == "TransactionCanceledException":
-            # Inspeccionar razones para mensajes más claros
-            reasons = e.response.get("CancellationReasons") or []
-            # Si el update del evento falló por condición → sin stock suficiente
-            for r in reasons:
-                if (r.get("Code") == "ConditionalCheckFailed" and
-                    r.get("Message") and "Quantity" in r.get("Message", "")):
-                    return _resp(409, {"message": "cantidad de entradas no disponibles"})
-            # Genérico: usuario no existe, evento no existe o id duplicado
-            return _resp(409, {"message": "Transacción cancelada: verifique usuario, evento y stock"})
+            # Concurrencia / sin stock / desactivado entre chequeo y transacción
+            return _resp(409, {"message": "entradas no disponibles o evento desactivado"})
         return _resp(500, {"message": "Internal error", "detail": str(e)})
     except Exception as e:
         return _resp(500, {"message": "Internal error", "detail": str(e)})
 
-    # Si la transacción fue OK, actualizar estado a INHABILITADO si quedó en 0
+    # 4) Si quedó en 0, marcar como DESHABILITADO
     try:
         events_table.update_item(
             Key={"EventId": event_id},
             UpdateExpression="SET EventStatus = :disabled",
             ConditionExpression="Quantity = :zero",
-            ExpressionAttributeValues={
-                ":disabled": "INHABILITADO",
-                ":zero": 0
-            }
+            ExpressionAttributeValues={":disabled": "DESHABILITADO", ":zero": 0}
         )
     except ClientError as e:
-        # Si falla por condición, simplemente no estaba en cero; ignorar
+        # Si la condición falla, simplemente no quedó en 0. Otros errores → warning en respuesta.
         if e.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
-            # Si es otro error de AWS, devuélvelo como warning (no romper la compra)
             return _resp(201, {
                 "message": "Compra registrada (warning: no se pudo actualizar estado)",
                 "RegistrationId": reg_id,
                 "EventId": event_id,
                 "UserId": user_id,
-                "Quantity": qty,
+                "Quantity": num,
                 "warn": str(e)
             })
 
-    # Éxito
+    # OK
     return _resp(201, {
         "message": "Compra registrada",
         "RegistrationId": reg_id,
         "EventId": event_id,
         "UserId": user_id,
-        "Quantity": qty
+        "Quantity": num
     })
