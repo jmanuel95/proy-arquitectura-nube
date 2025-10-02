@@ -209,7 +209,7 @@ Resources:
     Properties:
       AuthorizationType: 'NONE' # Sin autorizacion - acceso publico sin autenticacion
       HttpMethod: 'PUT'
-      ResourceId: !Ref ApiGatewayResourceUser
+      ResourceId: !Ref ApiGatewayResourceRegistration
       RestApiId: !Ref ApiGatewayRestApi
       Integration: # Configuracion de integracion con el servicio backend (Lambda)
         IntegrationHttpMethod: 'POST' # CORREGIDO - siempre POST para Lambda
