@@ -81,7 +81,6 @@ jobs:
           aws s3 cp dist/envio_correo_compra.zip "s3://events-app-lambda-code-884234865118-us-west-2/$CODE_S3_KEY_SQS_CONSUMER" --region ${AWS_REGION}
 
 
-
       - name: Deploy DynamoDB tables
         run: |
           aws cloudformation deploy \
