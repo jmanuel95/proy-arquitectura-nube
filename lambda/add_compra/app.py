@@ -12,6 +12,10 @@ users_table = ddb_res.Table(os.environ["USERS_TABLE"])
 registrations_table = ddb_res.Table(os.environ["REGISTRATION_TABLE"])
 ddb_cli = boto3.client("dynamodb")
 
+# SQS (NUEVO)
+sqs = boto3.client("sqs")
+SQS_QUEUE_URL = os.environ.get("SQS_QUEUE_URL")  # Defínela en tu template/env
+
 DISABLED_STATES = {"DESACTIVADO", "DESHABILITADO", "INHABILITADO"}
 
 def _resp(status, body):
@@ -24,6 +28,21 @@ def _resp(status, body):
         },
         "body": json.dumps(body)
     }
+
+# NUEVO: helper para enviar a SQS sin romper el flujo si falla
+def send_to_sqs(payload: dict):
+    if not SQS_QUEUE_URL:
+        print("[INFO] SQS_QUEUE_URL no configurada; omitiendo envío a SQS")
+        return
+    params = {"QueueUrl": SQS_QUEUE_URL, "MessageBody": json.dumps(payload)}
+    qname = SQS_QUEUE_URL.rsplit("/", 1)[-1]
+    if qname.endswith(".fifo"):
+        params["MessageGroupId"] = "registrations"
+        params["MessageDeduplicationId"] = str(uuid.uuid4())
+    try:
+        sqs.send_message(**params)
+    except ClientError as e:
+        print(f"[WARN] Error enviando a SQS: {e}")
 
 def handler(event, context):
     # CORS / método
@@ -52,11 +71,11 @@ def handler(event, context):
     if not user_id or not event_id or num < 1:
         return _resp(400, {"message": "UserId, EventId y NumEntradas>=1 son requeridos"})
 
-    # 1) Verificar evento
+    # 1) Verificar evento (AMPLIADO para traer más campos)
     try:
         evt = events_table.get_item(
             Key={"EventId": event_id},
-            ProjectionExpression="#E, Quantity, EventStatus",
+            ProjectionExpression="#E, Quantity, EventStatus, EventName, EventDate, EventCountry, EventCity",
             ExpressionAttributeNames={"#E": "EventId"}
         ).get("Item")
     except ClientError as e:
@@ -126,8 +145,8 @@ def handler(event, context):
                         "ConditionExpression": "attribute_not_exists(RegistrationId)"
                     }
                 }
-            ],
-            #ReturnCancellationReasons=True
+            ]
+            # ReturnCancellationReasons no se usa para compatibilidad del runtime
         )
     except ClientError as e:
         code = e.response.get("Error", {}).get("Code", "")
@@ -138,7 +157,7 @@ def handler(event, context):
     except Exception as e:
         return _resp(500, {"message": "Internal error", "detail": str(e)})
 
-    # 4) Si quedó en 0, marcar como DESHABILITADO 
+    # 4) Si quedó en 0, marcar como DESHABILITADO
     try:
         events_table.update_item(
             Key={"EventId": event_id},
@@ -147,16 +166,29 @@ def handler(event, context):
             ExpressionAttributeValues={":disabled": "DESHABILITADO", ":zero": 0}
         )
     except ClientError as e:
-        # Si la condición falla, simplemente no quedó en 0. Otros errores → warning en respuesta.
         if e.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
-            return _resp(201, {
-                "message": "Compra registrada (warning: no se pudo actualizar estado)",
-                "RegistrationId": reg_id,
-                "EventId": event_id,
-                "UserId": user_id,
-                "Quantity": num,
-                "warn": str(e)
-            })
+            # Enviamos igual a SQS aunque el estado no se haya podido actualizar
+            pass
+
+    # === NUEVO: construir payload y enviar a SQS ===
+    # Fallbacks por si tu esquema de usuario usa otras claves (name/UserNames/UserName, email/UserEmail/Email)
+    email = (u.get("email") or u.get("UserEmail") or u.get("Email") or "")
+    name  = (u.get("name")  or u.get("UserNames") or u.get("UserName") or "")
+    event_name    = str(evt.get("EventName", "") or "")
+    event_date    = str(evt.get("EventDate", "") or "")
+    event_country = str(evt.get("EventCountry", "") or "")
+    event_city    = str(evt.get("EventCity", "") or "")
+
+    sqs_payload = {
+        "EventName": event_name,
+        "EventDate": event_date,
+        "EventCountry": event_country,
+        "EventCity": event_city,
+        "name": name,
+        "email": email
+    }
+    send_to_sqs(sqs_payload)
+    # === FIN NUEVO ===
 
     # OK
     return _resp(201, {

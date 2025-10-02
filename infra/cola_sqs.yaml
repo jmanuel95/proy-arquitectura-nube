@@ -1,0 +1,24 @@
+Parameters:
+  ProjectName:
+    Type: String
+
+Resources:
+  RegistrationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ProjectName}-registration-queue"
+      VisibilityTimeout: 60           # (opcional) > timeout de tu Lambda
+      MessageRetentionPeriod: 1209600 # (opcional) 14 días
+
+Outputs:
+  RegistrationQueueUrl:
+    Description: URL de la cola SQS (útil para la variable SQS_QUEUE_URL)
+    Value: !Ref RegistrationQueue
+    Export:
+      Name: RegistrationQueueUrl
+
+  RegistrationQueueArn:
+    Description: ARN de la cola SQS (útil para la policy IAM de la Lambda)
+    Value: !GetAtt RegistrationQueue.Arn
+    Export:
+      Name: RegistrationQueueArn

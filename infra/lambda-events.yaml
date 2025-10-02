@@ -230,8 +230,10 @@ Resources:
                   - !ImportValue UserTableArn
               - Effect: Allow
                 Action:
-                  - dynamodb:TransactWriteItems
-                Resource: "*"
+                  - sqs:SendMessage
+                Resource:
+                  - !ImportValue RegistrationQueueArn
+
 
   CreateRegistrationLambdaLogGroup:
     Type: 'AWS::Logs::LogGroup'
@@ -259,6 +261,7 @@ Resources:
           REGISTRATION_TABLE: !ImportValue RegistrationTableName
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO  # Nivel de logging configurable
+          SQS_QUEUE_URL: https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/RegistrationQueueUrl # ← cámbiala
 
 Outputs:
   EventFunctionArn:

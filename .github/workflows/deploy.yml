@@ -83,6 +83,14 @@ jobs:
             --parameter-overrides ProjectName="${PROJECT_NAME}" \
             --region "${AWS_REGION}"
 
+      - name: Deploy SQS
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/sqs.yaml \
+            --stack-name ${PROJECT_NAME}-sqs \
+            --parameter-overrides ProjectName=${PROJECT_NAME} \
+            --region ${AWS_REGION}
+
       - name: Deploy Lambdas
         run: |
           aws cloudformation deploy \
