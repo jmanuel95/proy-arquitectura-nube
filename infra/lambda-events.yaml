@@ -301,19 +301,19 @@ Resources:
 
   RegistrationSqsConsumerLambda:
     Type: AWS::Lambda::Function
-    DependsOn: RegistrationSqsConsumerLogGroup 
     Properties:
       FunctionName: RegistrationSqsConsumerLambda
+      Description: "Consume mensajes de la cola de registration (SQS) y los procesa"
+      Runtime: python3.12
       Handler: app.handler
-      Runtime: python3.12              # mismo handler style que usas
       Role: !GetAtt RegistrationSqsConsumerLambdaRole.Arn
       MemorySize: 256
       Timeout: 30
       Environment:
         Variables:
+          SQS_QUEUE_URL: !ImportValue RegistrationQueueUrl
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO
-          SQS_QUEUE_URL: !ImportValue RegistrationQueueUrl   # ya existente en tu stack de SQS
       Code:
         S3Bucket: !Ref CodeS3Bucket
         S3Key: !Ref CodeS3KeySqsConsumer
@@ -321,12 +321,12 @@ Resources:
   RegistrationSqsConsumerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      EventSourceArn: !ImportValue RegistrationQueueArn   # ARN de la cola SQS
+      EventSourceArn: !ImportValue RegistrationQueueArn
       FunctionName: !Ref RegistrationSqsConsumerLambda
       BatchSize: 10
       MaximumBatchingWindowInSeconds: 1
       Enabled: true
-      FunctionResponseTypes:
+      FunctionResponseTypes: [ ReportBatchItemFailures ]
 
 
 Outputs:
@@ -343,9 +343,7 @@ Outputs:
       Name: !Sub "${ProjectName}-UserFunctionArn"
 
   RegistrationFunctionArn:
-    Description: ARN de la Lambda de registro de ventas
-    Value: !GetAtt CreateRegistrationLambdaFunction.Arn
+    Description: ARN de la Lambda de registration/compra
+    Value: !GetAtt RegistrationManagementLambda.Arn
     Export:
       Name: !Sub "${ProjectName}-RegistrationFunctionArn"
-
-      
