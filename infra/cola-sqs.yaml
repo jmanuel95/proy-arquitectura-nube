@@ -1,3 +1,7 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DynamoDB - Tablas de clientes, registro de ventes y eventos
+
+
 Parameters:
   ProjectName:
     Type: String

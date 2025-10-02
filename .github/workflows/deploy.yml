@@ -86,7 +86,7 @@ jobs:
       - name: Deploy SQS
         run: |
           aws cloudformation deploy \
-            --template-file infra/sqs.yaml \
+            --template-file infra/cola-sqs.yaml \
             --stack-name ${PROJECT_NAME}-sqs \
             --parameter-overrides ProjectName=${PROJECT_NAME} \
             --region ${AWS_REGION}
