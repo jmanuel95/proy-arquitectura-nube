@@ -50,6 +50,12 @@ jobs:
           cd lambda/add_event
           zip -r ../../dist/add_event.zip app.py
 
+      - name: Zip Lambda event correo
+        run: |
+          mkdir -p dist
+          cd lambda/envio_correo_compra
+          zip -r ../../dist/envio_correo_compra.zip app.py
+
       - name: Zip Lambda registration
         run: |
           mkdir -p dist
