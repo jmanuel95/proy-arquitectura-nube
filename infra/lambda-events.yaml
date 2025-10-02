@@ -285,12 +285,11 @@ RegistrationSqsConsumerLambdaRole:
         PolicyDocument:
           Version: "2012-10-17"
           Statement:
-            # Permisos para escribir logs (mismo patrón que tus otras lambdas)
-            - Effect: Allow
+            - Effect: 'Allow'
               Action:
-                - logs:CreateLogGroup
-                - logs:CreateLogStream
-                - logs:PutLogEvents
+                - 'logs:CreateLogGroup'
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
               Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/RegistrationSqsConsumerLambda*
 
 RegistrationSqsConsumerLogGroup:
