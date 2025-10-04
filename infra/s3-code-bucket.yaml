@@ -19,7 +19,36 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+Resources:
+  ReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-reports-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+
+
 Outputs:
   BucketName:
     Value: !Ref LambdaCodeBucket
     Description: Nombre del bucket para subir los ZIP de la Lambda
+  ReportsBucketName:
+    Description: Nombre del bucket de reportes
+    Value: !Ref ReportsBucket
+    Export:
+      Name: !Sub "${ProjectName}-ReportsBucketName"
+  ReportsBucketArn:
+    Description: ARN del bucket de reportes
+    Value: !GetAtt ReportsBucket.Arn
+    Export:
+      Name: !Sub "${ProjectName}-ReportsBucketArn"

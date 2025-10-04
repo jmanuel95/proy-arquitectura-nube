@@ -13,7 +13,39 @@ logger = logging.getLogger()
 logger.setLevel(os.getenv("LOG_LEVEL", "INFO"))
 ses = boto3.client("ses")
 SES_FROM = os.environ.get("SES_FROM")
+s3 = boto3.client("s3")
+REPORTS_BUCKET = os.environ.get("REPORTS_BUCKET") 
 
+def post_s3(payload: dict, attachment_bytes: bytes, filename: str = "comprobante.txt") -> Dict[str, str]:
+    """
+    Sube el archivo TXT (bytes) a S3 dentro del prefijo 'reports/'.
+    Requiere la env var REPORTS_BUCKET.
+    Devuelve {bucket, key}.
+    """
+    if not REPORTS_BUCKET:
+        logger.info("REPORTS_BUCKET no configurado; se omite subida a S3")
+        return {}
+
+    # ruta destino (puedes incluir un id único si quieres)
+    key = f"reports/{filename}"
+    # Si prefieres nombre único:
+    # import uuid
+    # key = f"reports/comprobante-{uuid.uuid4().hex}.txt"
+
+    s3.put_object(
+        Bucket=REPORTS_BUCKET,
+        Key=key,
+        Body=attachment_bytes,
+        ContentType="text/plain; charset=utf-8"
+    )
+    logger.info("TXT guardado en S3: s3://%s/%s", REPORTS_BUCKET, key)
+    return {"bucket": REPORTS_BUCKET, "key": key}
+
+def _parse_json(s: str) -> Dict[str, Any]:
+    try:
+        return json.loads(s)
+    except Exception:
+        return {}
 
 def build_txt_from_payload(payload: dict) -> bytes:
     """
@@ -130,6 +162,10 @@ def handler(event, context):
                 attachment_bytes=attachment
             )
             logger.info("Correo enviado a %s con adjunto TXT", recipient)
+            try:
+                post_s3(payload, attachment, filename="comprobante.txt")
+            except Exception as e:
+                logger.warning("No se pudo subir el TXT a S3: %s", e)
         else:
             logger.warning("No hay email destino en payload ni SES_TO; no se envía correo.")
     except Exception as e:

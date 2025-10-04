@@ -306,7 +306,14 @@ Resources:
                   - ses:SendEmail
                   - ses:SendRawEmail
                 Resource: "*"
-              # (añade aquí otros permisos si el consumer necesita acceder a otros servicios)
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  # arn de objetos dentro del bucket (toda la ruta /*)
+                  Fn::Sub:
+                    - "arn:aws:s3:::${B}/*"
+                    - { B: { "Fn::ImportValue": { "Fn::Sub": "${ProjectName}-ReportsBucketName"}}}
 
 
   RegistrationSqsConsumerLogGroup:
@@ -332,6 +339,8 @@ Resources:
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO
           SES_FROM: juanmanuelmontoya1@gmail.com
+          REPORTS_BUCKET:
+            Fn::ImportValue: !Sub "${ProjectName}-ReportsBucketName"
       Code:
         S3Bucket: events-app-lambda-code-884234865118-us-west-2 
         S3Key: !Ref CodeS3KeySqsConsumer
