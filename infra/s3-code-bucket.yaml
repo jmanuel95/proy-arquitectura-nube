@@ -19,7 +19,6 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-Resources:
   ReportsBucket:
     Type: AWS::S3::Bucket
     Properties:
