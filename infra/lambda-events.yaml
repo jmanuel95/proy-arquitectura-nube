@@ -301,6 +301,11 @@ Resources:
                   - sqs:DeleteMessageBatch
                   - sqs:ChangeMessageVisibilityBatch
                 Resource: !ImportValue RegistrationQueueArn
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
               # (añade aquí otros permisos si el consumer necesita acceder a otros servicios)
 
 
@@ -326,6 +331,7 @@ Resources:
           SQS_QUEUE_URL: !ImportValue RegistrationQueueUrl
           REGION: !Ref AWS::Region
           LOG_LEVEL: INFO
+          SES_FROM: juanmanuelmontoya1@gmail.com
       Code:
         S3Bucket: events-app-lambda-code-884234865118-us-west-2 
         S3Key: !Ref CodeS3KeySqsConsumer

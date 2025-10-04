@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SES Email Identity (remitente verificado)
+
+Parameters:
+  ProjectName:
+    Type: String
+  SesFromEmail:
+    Type: String
+    Description: Correo remitente a verificar en SES (p.ej. no-reply@tu-dominio.com)
+
+Resources:
+  SesFromIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref SesFromEmail
+
+Outputs:
+  SesFromIdentityArn:
+    Description: ARN de la identidad (email)
+    Value: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${SesFromEmail}"
+    Export:
+      Name: !Sub "${ProjectName}-SesFromIdentityArn"
