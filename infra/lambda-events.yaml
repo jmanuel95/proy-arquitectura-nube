@@ -374,3 +374,10 @@ Outputs:
     Value: !GetAtt CreateRegistrationLambdaFunction.Arn
     Export:
       Name: !Sub "${ProjectName}-RegistrationFunctionArn"
+
+  ResourceSummary:
+    Description: "Resumen de recursos principales creados por este stack"
+    Value: !Sub |
+      Stack: ${AWS::StackName}
+      Region: ${AWS::Region}
+      DynamoDB Tables: 3 (EventManagementTable, UserManagementTable, RegistrationTable)

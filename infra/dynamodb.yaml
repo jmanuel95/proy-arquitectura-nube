@@ -194,3 +194,9 @@ Outputs:
     Value: !GetAtt RegistrationTable.Arn
     Export:
       Name: !Sub "RegistrationTableArn"
+
+  ResourceSummary:
+    Description: "Resumen de recursos principales creados por este stack"
+    Value: !Sub |
+      DynamoDB Tables: 3 (EventManagementTable, UserManagementTable, RegistrationTable)
+      
