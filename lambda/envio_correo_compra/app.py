@@ -2,7 +2,12 @@ import json
 import os
 import logging
 from typing import Dict, Any, List
+import os
+import io
 import boto3
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 
 logger = logging.getLogger()
 logger.setLevel(os.getenv("LOG_LEVEL", "INFO"))
