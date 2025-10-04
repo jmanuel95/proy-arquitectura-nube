@@ -179,4 +179,4 @@ def handler(event, context):
                 return _resp(404, {"message": "Evento no encontrado"})
             return _resp(500, {"message": "Error eliminando evento", "error": str(e)})
         except Exception as e:
-            return _resp(500, {"message": "Error inesperado", "error": str(e)})
+            return _resp(500, {"message": "Error inesperado", "error": str(e)}) 
