@@ -77,7 +77,7 @@ def handler(event, context):
         try:
             items, last_key = [], None
             while True:
-                params = {"FilterExpression": Attr("EventStatus").eq("CREATED")}
+                params = {"FilterExpression": Attr("EventStatus").eq("Activo")}
                 if last_key:
                     params["ExclusiveStartKey"] = last_key
                 res = events_table.scan(**params)
@@ -91,4 +91,4 @@ def handler(event, context):
         except ClientError as e:
             return _resp(500, {"message": "Error consultando eventos", "error": str(e)})
         except Exception as e:
-            return _resp(500, {"message": "Error inesperado", "error": str(e)})
+            return _resp(500, {"message": "Error inesperado", "error": str(e)}) 
