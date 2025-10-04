@@ -149,3 +149,34 @@ def handler(event, context):
             return _resp(500, {"message": "Error actualizando evento", "error": str(e)})
         except Exception as e:
             return _resp(500, {"message": "Error inesperado", "error": str(e)})
+
+    if http_method == "DELETE":
+        try:
+            body = json.loads(event.get("body") or "{}")
+            event_id = body.get("EventId")
+
+            if not event_id:
+                return _resp(400, {"message": "EventId es obligatorio"})
+
+            # Si quieres exigir ADMIN, descomenta este bloque:
+            # user_id = body.get("UserId")
+            # if not user_id:
+            #     return _resp(400, {"message": "UserId es obligatorio para borrar"})
+            # u = users_table.get_item(Key={"UserId": user_id})
+            # if "Item" not in u or u["Item"].get("role") != "ADMIN":
+            #     return _resp(403, {"message": "Sólo ADMIN puede eliminar eventos"})
+
+            res = events_table.delete_item(
+                Key={"EventId": event_id},
+                ConditionExpression="attribute_exists(EventId)",  # 404 si no existe
+                ReturnValues="ALL_OLD"
+            )
+
+            return _resp(200, {"message": "Evento eliminado", "event": res.get("Attributes", {})})
+
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                return _resp(404, {"message": "Evento no encontrado"})
+            return _resp(500, {"message": "Error eliminando evento", "error": str(e)})
+        except Exception as e:
+            return _resp(500, {"message": "Error inesperado", "error": str(e)})
