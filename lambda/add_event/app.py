@@ -91,4 +91,61 @@ def handler(event, context):
         except ClientError as e:
             return _resp(500, {"message": "Error consultando eventos", "error": str(e)})
         except Exception as e:
-            return _resp(500, {"message": "Error inesperado", "error": str(e)}) 
+            return _resp(500, {"message": "Error inesperado", "error": str(e)})
+
+    if http_method == "PUT":
+        try:
+            body = json.loads(event.get("body") or "{}")
+
+            user_id = body.get("UserId")
+            event_id = body.get("EventId")
+            if not user_id or not event_id:
+                return _resp(400, {"message": "UserId y EventId son obligatorios"})
+
+            # Validar rol del usuario
+            u = users_table.get_item(Key={"UserId": user_id})
+            if "Item" not in u:
+                return _resp(404, {"message": "Usuario no encontrado"})
+            if u["Item"].get("role") != "ADMIN":
+                return _resp(403, {"message": "Sólo ADMIN puede actualizar eventos"})
+
+            # Campos permitidos para actualización (manda sólo los que quieras cambiar)
+            allowed = ["EventName", "EventDate", "EventStatus", "EventCountry", "EventCity", "Quantity"]
+            updates = {k: body[k] for k in allowed if k in body and body[k] is not None}
+
+            if not updates:
+                return _resp(400, {"message": "No hay campos válidos para actualizar"})
+
+            # Validación de Quantity (si viene)
+            if "Quantity" in updates:
+                try:
+                    q = int(updates["Quantity"])
+                    if q < 0:
+                        return _resp(400, {"message": "Quantity no puede ser negativo"})
+                    updates["Quantity"] = q
+                except Exception:
+                    return _resp(400, {"message": "Quantity debe ser entero"})
+
+            # Build UpdateExpression dinámico
+            update_expr = "SET " + ", ".join(f"#{k} = :{k}" for k in updates.keys())
+            expr_attr_names = {f"#{k}": k for k in updates.keys()}
+            expr_attr_values = {f":{k}": updates[k] for k in updates.keys()}
+
+            # Ejecutar actualización; falla si el evento no existe
+            res = events_table.update_item(
+                Key={"EventId": event_id},
+                UpdateExpression=update_expr,
+                ExpressionAttributeNames=expr_attr_names,
+                ExpressionAttributeValues=expr_attr_values,
+                ConditionExpression="attribute_exists(EventId)",
+                ReturnValues="ALL_NEW"
+            )
+
+            return _resp(200, {"message": "Evento actualizado", "event": res.get("Attributes", {})})
+
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                return _resp(404, {"message": "Evento no encontrado"})
+            return _resp(500, {"message": "Error actualizando evento", "error": str(e)})
+        except Exception as e:
+            return _resp(500, {"message": "Error inesperado", "error": str(e)})
