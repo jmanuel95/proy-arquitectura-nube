@@ -77,7 +77,7 @@ def handler(event, context):
         try:
             items, last_key = [], None
             while True:
-                params = {"FilterExpression": Attr("EventStatus").eq("Activo")}
+                params = {"FilterExpression": Attr("EventStatus").eq("HABILITADO")}
                 if last_key:
                     params["ExclusiveStartKey"] = last_key
                 res = events_table.scan(**params)
